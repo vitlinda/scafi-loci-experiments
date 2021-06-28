@@ -1,13 +1,12 @@
 name := "ScaFi Loci"
 
 scalaVersion := "2.13.6"
-
-idePackagePrefix := Some("it.unibo")
 // ScaLa Loci configuration
 resolvers += ("STG old bintray repo" at "http://www.st.informatik.tu-darmstadt.de/maven/").withAllowInsecureProtocol(true)
+// Library versions
 val scalaLociVersion = "0.4.0"
 val scafiVersion = "0.3.3"
-
+// Dependencies utils
 def scafi(packageName : String) = "it.unibo.scafi" %% packageName % scafiVersion
 def loci(packageName : String) = "de.tuda.stg" %% packageName % scalaLociVersion
 
