@@ -57,10 +57,19 @@ object AggregateApplication extends App {
 object AggregateSystem extends App {
   val port: Int = if(args.length==1) args(0).toInt else 43053
   val numNodes = 10
+  //first
+  multitier start new Instance[ScafiExecution.Node](
+    listen[ScafiExecution.Node] {
+      TCP(port)
+    }
+  )
+  //others
   1 to numNodes foreach { i =>
     multitier start new Instance[ScafiExecution.Node](
       listen[ScafiExecution.Node] {
         TCP(port + i)
+      } and connect[ScafiExecution.Node] {
+        TCP("localhost", port + i - 1)
       }
     )
   }
