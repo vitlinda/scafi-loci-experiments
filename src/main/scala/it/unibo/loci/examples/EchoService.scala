@@ -14,7 +14,7 @@ import rescala.default._
 
   val publicMessage = on[Server] sbj { client: Remote[Client] =>
     message.asLocalFromAllSeq collect {
-      case (remote, message) if remote != client => message
+      case (remote, message) if remote == client => message
     }
   }
 
