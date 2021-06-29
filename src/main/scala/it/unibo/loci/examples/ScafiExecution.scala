@@ -35,7 +35,9 @@ object ExportLocalUtils {
   @peer type Node <: { type Tie <: Multiple[Node] }
   val id: Id on Node = on[Node] { UUID.randomUUID.hashCode() }
 
-  //val message : Evt[String] on Node = on[Node] { Evt[String] }
+  val messageStream : Local[Evt[Export]] on Node = Evt[Export]
+  // val assocs: Local[Signal[Map[Remote[Node], Export]]] on Node = messageStream
+  // val receivedMessages: Signal[Map[ID,Export]] on Node = on[Node] { assocs.asLocalFromAllSeq } // .map(_.toMap)
 
   def main() = {
     on[Node] {
