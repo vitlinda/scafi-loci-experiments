@@ -39,7 +39,7 @@ object ExportLocalUtils {
 
   def main() = {
     on[Node] {
-      val program = new AggregateProgram { override def main(): Any = 10 }
+      val program = new AggregateProgram { override def main(): Any = foldhood(0)(_+_)(1) }
       val context = new ContextImpl(id, Iterable.empty, Map.empty, Map.empty)
       val export = program.round(context)
       println(`export`)
@@ -52,4 +52,16 @@ object AggregateApplication extends App {
   multitier start new Instance[ScafiExecution.Node](
     listen[ScafiExecution.Node] { TCP(43053) }
   )
+}
+
+object AggregateSystem extends App {
+  val port: Int = if(args.length==1) args(0).toInt else 43053
+  val numNodes = 10
+  1 to numNodes foreach { i =>
+    multitier start new Instance[ScafiExecution.Node](
+      listen[ScafiExecution.Node] {
+        TCP(port + i)
+      }
+    )
+  }
 }
