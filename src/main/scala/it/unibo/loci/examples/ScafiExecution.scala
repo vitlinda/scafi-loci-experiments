@@ -41,7 +41,7 @@ object ExportLocalUtils {
 
   def main() = {
     on[Node] {
-      val program = new AggregateProgram { override def main(): Any = foldhood(0)(_+_)(1) }
+      val program = new AggregateProgram { override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)}) }
       val context = new ContextImpl(id, Iterable.empty, Map.empty, Map.empty)
       val export = program.round(context)
       println(`export`)
@@ -72,9 +72,11 @@ object AggregateSystem extends App {
         TCP(port + i)
       } and connect[ScafiExecution.Node] {
         TCP("localhost", port + i - 1)
-      } and connect[ScafiExecution.Node] {
+      } /*
+      and connect[ScafiExecution.Node] {
         TCP("localhost", port + i + 1)
       }
+      */
     )
   }
 }
