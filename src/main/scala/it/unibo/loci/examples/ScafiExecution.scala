@@ -66,12 +66,14 @@ object AggregateSystem extends App {
     }
   )
   //others
-  1 to numNodes foreach { i =>
+  1 to (numNodes-1) foreach { i =>
     multitier start new Instance[ScafiExecution.Node](
       listen[ScafiExecution.Node] {
         TCP(port + i)
       } and connect[ScafiExecution.Node] {
         TCP("localhost", port + i - 1)
+      } and connect[ScafiExecution.Node] {
+        TCP("localhost", port + i + 1)
       }
     )
   }
