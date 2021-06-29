@@ -13,7 +13,7 @@ import loci._
   // γ
   @peer type Behaviour <: { type Tie <: Single[State] }
   // α
-  @peer type Actuators
+  @peer type Actuators <: { type Tie <: Single[State] }
   // σ
   @peer type Sensors <: { type Tie <: Single[State] }
   // k
