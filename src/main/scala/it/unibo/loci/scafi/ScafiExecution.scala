@@ -2,35 +2,40 @@ package it.unibo.loci.scafi
 
 import loci._
 import loci.communicator.tcp._
+import loci.language.Placement
 import rescala.default._
 import loci.transmitter.rescala._
 import loci.serializer.circe._
+import rescala.parrp.ParRPStruct
+import rescala.reactives
 
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
 
-@multitier object ScafiExecution {
+import LociIncarnation._
+@multitier class ScafiExecutionTemplate(program : => AggregateProgram) {
   import LociIncarnation._
   type Id = ID
   type Actuation = String
   type Sensing = Int
   @peer type Node <: { type Tie <: Multiple[Node] }
 
-  val id: Id on Node = on[Node] { UUID.randomUUID.hashCode() }
+  val id: Id on Node = UUID.randomUUID.hashCode()
   val localExports : Evt[(Id, EXPORT)] on Node = on[Node] { Evt[(Id, EXPORT)] }
-  val neighboursExports = on[Node] sbj {
-    node: Remote[Node] => localExports.asLocalFromAllSeq.collect { case (remote, message) => message }
+  val neighboursExports: reactives.Event[(Id, EXPORT), ParRPStruct] per Node on Node = on[Node].sbj {
+    implicit ctx: Placement.Context[Node] => //helps type check
+      node: Remote[Node] => localExports.asLocalFromAllSeq.collect { case (remote, message) if remote != node => message }
   }
 
-  def main() = {
-    on[Node] {
+  def main() : Unit on Node = {
+    on[Node] { implicit ctx : Placement.Context[Node] => //helps type check
       val exports = new ConcurrentHashMap[ID, EXPORT]().asScala
       neighboursExports.asLocalFromAllSeq.observe {
         case (_, (neighId, export)) => exports.put(neighId, export).foreach(data => data)
       }
       while(true) {
-        val program = new AggregateProgram { override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)}) }
+        //val program = new AggregateProgram { override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)}) }
         val context = new ContextImpl(id, exports, Map.empty, Map.empty)
         val e = program.round(context)
         localExports.fire(id -> e)
@@ -41,6 +46,9 @@ import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
   }
 }
 
+@multitier object ScafiExecution extends ScafiExecutionTemplate(
+  new AggregateProgram { override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)}) }
+)
 object TokenRingAggregateSystem extends App {
   val initialPort: Int = if(args.length == 1) args(0).toInt else 43053
   val numNodes = 10
