@@ -12,6 +12,8 @@ import rescala.default._
 
   val message : Evt[String] on Client = on[Client] { Evt[String] }
 
+  val test : Evt[String] on Client = on[Client] { Evt[String] }
+
   val publicMessage = on[Server] sbj { client: Remote[Client] =>
     message.asLocalFromAllSeq collect {
       case (remote, message) if remote == client => message

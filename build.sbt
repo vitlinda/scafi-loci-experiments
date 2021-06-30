@@ -8,6 +8,15 @@ val scalaLociVersion = "0.4.0"
 val scafiVersion = "0.3.3"
 // Dependencies utils
 def scafi(packageName : String) = "it.unibo.scafi" %% s"scafi-$packageName" % scafiVersion
+//It seems that POM file with _%% doesn't work in sbt...
+def spala : Seq[ModuleID] = Seq(
+  "it.unibo.scafi" %% "spala" % scafiVersion intransitive(),
+  "com.typesafe.play" %% "play-json" % "2.8.1",
+  "com.typesafe.akka" %% "akka-remote" % "2.5.31",
+  "com.typesafe.akka" %% "akka-actor" % "2.5.31",
+  "com.github.scopt" %% "scopt" % "4.0.0-RC2",
+  "org.slf4j" % "slf4j-log4j12" % "1.2"
+)
 def loci(packageName : String) = "de.tuda.stg" %% s"scala-loci-$packageName" % scalaLociVersion
 
 libraryDependencies ++= Seq(
@@ -18,7 +27,8 @@ libraryDependencies ++= Seq(
   loci("lang-transmitter-rescala"),
   loci("communicator-tcp"),
   loci("serializer-upickle"),
-)
+  loci("serializer-circe"),
+) ++ spala
 scalacOptions ++= Seq(
   //from https://tpolecat.github.io/2017/04/25/scalac-flags.html
   "-Ymacro-annotations", // Allow macro definition (besides implementation and application)
