@@ -21,14 +21,14 @@ import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
   val messageStream : Evt[(Id, EXPORT)] on Node = on[Node] { Evt[(Id, EXPORT)] }
   val receivedMessages = on[Node] sbj {
     node: Remote[Node] =>
-      messageStream.asLocalFromAllSeq collect { case (remote, message) if remote != node => { message } }
+      messageStream.asLocalFromAllSeq collect { case (remote, message) if remote != node => message }
   }
 
   def main() = {
     on[Node] {
       val map = new ConcurrentHashMap[ID, EXPORT]().asScala
       receivedMessages.asLocalFromAllSeq.observe {
-        case (_, (neighId, export)) => { map.put(neighId, export).foreach(data => data)  }
+        case (_, (neighId, export)) => map.put(neighId, export).foreach(data => data)
       }
       while(true) {
         val program = new AggregateProgram { override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)}) }
