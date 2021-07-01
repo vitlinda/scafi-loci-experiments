@@ -1,18 +1,10 @@
 package it.unibo.loci.scafi
 
-import com.fasterxml.jackson.annotation.JsonFormat
-import io.circe.Decoder.Result
-import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonNumber}
+import io.circe.{Json, _}
 import it.unibo.scafi.distrib.actor.serialization.{BasicJsonAnySerialization, BasicSerializers}
 import it.unibo.scafi.incarnations.Incarnation
-import loci.MessageBuffer
-import loci.transmitter.{IdenticallyTransmittable, Serializable}
-import play.api.libs.json._
-import play.api.libs.json.{Json => PlayJSon}
-import upickle.core.{ArrVisitor, ObjVisitor, Visitor}
-
-import scala.util.{Failure, Success, Try}
-import upickle.default._
+import loci.transmitter.IdenticallyTransmittable
+import play.api.libs.json.{Json => PlayJSon, _}
 trait ExportSerialization {
   self : Incarnation =>
   import BasicSerializers._
@@ -70,5 +62,4 @@ trait ExportSerialization {
       case Right(value) => Right[DecodingFailure, EXPORT](value)
     }
   }
-
 }
