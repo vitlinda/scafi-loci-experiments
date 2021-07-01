@@ -25,7 +25,7 @@ import LociIncarnation._
   val neighboursExports: reactives.Event[(ID, EXPORT), ParRPStruct] per Node on Node = on[Node].sbj {
     implicit ctx: Placement.Context[Node] => //helps type check
       node: Remote[Node] => localExports
-        .asLocalFromAllSeq //access to remote data contained in local exports and create a new stream of export produced by neighbourhood
+        .asLocalFromAllSeq // Access to remote data contained in local exports and create a new stream of export produced by neighbourhood
         .collect { case (remote, message) if remote != node => message }
   }
   // Define the behaviour of the node
@@ -60,16 +60,16 @@ class AggregateNeighboursId extends AggregateProgram {
 }
 // A concrete aggregate system. It shares the same aggregate program within all nodes.
 @multitier object P2PAggregateSystem extends P2PAggregateSystemTemplate(new AggregateNeighboursId)
-// Token-Ring like ties
+// Token-Ring like nodes
 object TokenRingAggregateSystem extends App {
   val initialPort: Int = if(args.length == 1) args(0).toInt else 43053
   val numNodes = 10
   val endPort = initialPort + numNodes
   val ports = initialPort to endPort
-  val Seq((firstPort, secondNode), middle @ _*) = ports zip ports.tail
+  val Seq((firstPort, secondNode), middle @ _*) = ports.zip(ports.tail)
   val (lastPort, secondLastPort) = (ports.last, ports.head)
   val firstNode = TCP(firstPort).firstConnection -> TCP(secondNode).firstConnection
-  val middleNodes = middle.map { case (current, next) =>  TCP("localhost", current) -> TCP(next).firstConnection }
+  val middleNodes = middle.map { case (current, next) => TCP("localhost", current) -> TCP(next).firstConnection }
   val lastNode = TCP("localhost", lastPort) -> TCP("localhost", secondLastPort)
   val nodes = firstNode +: middleNodes :+ lastNode
   nodes.foreach { case (node, next) =>
