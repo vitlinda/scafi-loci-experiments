@@ -40,6 +40,7 @@ import LociIncarnation._
       timer.observe {
         _ =>
           val exports = exportsSignal.readValueOnce // Access to current exports representation
+          println(exports)
           val context = new ContextImpl(id, exports, Map.empty, Map.empty) // Create context for aggregate execution
           val e = program.round(context) // Evaluate the aggregate program
           localExports.fire(id -> e) // Fire new export produced

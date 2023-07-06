@@ -32,7 +32,7 @@ trait ExportSerialization {
   }
 
   implicit val formatPath: Format[Path] = new Format[Path] {
-    override def writes(p: Path): JsValue = JsArray(p.path.map(s => formatSlot.writes(s)))
+    override def writes(p: Path): JsValue = JsArray(p.path.reverse.map(s => formatSlot.writes(s)))
     override def reads(json: JsValue): JsResult[Path] =
       JsSuccess(factory.path(json.validate[List[Slot]].get:_*))
   }

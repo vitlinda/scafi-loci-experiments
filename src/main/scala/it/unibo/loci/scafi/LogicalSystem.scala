@@ -8,9 +8,12 @@ import loci.transmitter.rescala._
 import loci.serializer.circe._
 import rescala.parrp.ParRPStruct
 import rescala.reactives
+import io.circe.parser
 
 import java.util.UUID
 import LociIncarnation._
+import io.circe.Json
+import io.circe.syntax.EncoderOps
 
 import scala.concurrent.Future
 import scala.util.Success
@@ -26,24 +29,27 @@ import scala.util.Success
    */
   // γ
   @peer type BehaviourComponent
-  def compute(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(LSNS, SensorData)]): (
+  def compute(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
       EXPORT,
       State
   ) on BehaviourComponent = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
     val context = new ContextImpl(id, exports + (id -> state), sensorsMap, Map.empty) //todo
     val program = new AggregateProgram { //make it trasmittable
-      override def main(): Any = rep(0)(_ + 1) //foldhood(0)(_ + _)(1)
+      override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)})
     }
+    println(s"exportssss: ${context.exports()}")
     val result = program.round(context)
     (result, result)
   }
   // α
   @peer type ActuatorComponent
-  def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent = println(s"id : $id --- export : $export")
+  def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent = {
+    println(s"id : $id --- result : ${export.root[Any]()} |---| export : $export \n")
+  }
   // σ
   @peer type SensorComponent
-  def sense(id: ID): Set[(LSNS, SensorData)] on SensorComponent = Set.empty[(LSNS, SensorData)]
+  def sense(id: ID): Set[(CNAME, SensorData)] on SensorComponent = Set.empty[(CNAME, SensorData)]
   // k
   @peer type StateComponent
   def state(id: ID): State on StateComponent = on[StateComponent](factory.emptyExport())
@@ -62,21 +68,26 @@ import scala.util.Success
   @peer type CommunicationComponent <: Node
 
   private var _state: EXPORT on Node = factory.emptyExport()
-  private val id: ID on Node = UUID.randomUUID().hashCode()
-  private val localExports: Var[Set[(ID, EXPORT)]] on Node = on[Node](Var(Set.empty[(ID, EXPORT)]))
+  private val mid: ID on Node = UUID.randomUUID().hashCode()
+  private val localExports: Var[(ID, Map[ID, EXPORT])] on Node = on[Node](Var((mid, Map.empty[ID, EXPORT])))
   def process(id: ID, export: EXPORT): Unit on Node = placed {
-    localExports.transform(exports => exports + (id -> export))
+    println("remote  "+ id + " local: " + mid + " export: " + export.root[Any]() + " local exports " + localExports.now)
+    println("_____")
+    localExports.transform { case (myId, exports) => (myId, exports + (id -> export))}
   }
 
   override def state(id: ID): State on StateComponent = _state
 
-  override def update(id: ID, state: State): Unit on StateComponent = this._state = state
-  override def exports(id: Int): Set[(ID, EXPORT)] on Node = localExports.now
+  override def update(id: ID, state: State): Unit on StateComponent = this._state = state.asJson.as[EXPORT] match {
+    case Right(value) => value
+    case Left(value) => throw new Exception(value)
+  }
+  override def exports(id: Int): Set[(ID, EXPORT)] on Node = localExports.now._2.toSet
 
-  def myState: State on Node = this.state(id)
-  def mySensors: Set[(LSNS, SensorData)] on Node = this.sense(id)
+  def myState: State on Node = this.state(mid)
+  def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(mid)
 
-  def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(LSNS, SensorData)]): (
+  def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
       EXPORT,
       State
   ) on Node =
@@ -85,12 +96,12 @@ import scala.util.Success
   def main(): Unit on Node = {
     while (true) {
       val state = myState
-      val myExports = exports(id)
+      val myExports = exports(mid)
       val sensors = mySensors
-      val result = computeLocal(id, state, myExports, sensors)
-      remote.call(process(id, result._1))
-      actuation(id, result._1)
-      update(id, result._2)
+      val result = computeLocal(mid, state, myExports, sensors)
+      remote.call(process(mid, result._1))
+      actuation(mid, result._1)
+      update(mid, result._1)
       Thread.sleep(1000)
     }
   }
@@ -108,7 +119,7 @@ import scala.util.Success
 
   private var _state: EXPORT on Node = factory.emptyExport()
   private val id: ID on Node = UUID.randomUUID().hashCode()
-  private val brokerExport: Var[Set[(ID, EXPORT)]] on Broker = on[Broker](Var(Set.empty[(ID, EXPORT)]))
+  private val brokerExport: Var[Map[ID, EXPORT]] on Broker = on[Broker](Var(Map.empty[ID, EXPORT]))
   private def localExport(id: ID): Future[Set[(ID, EXPORT)]] on Node = placed {
     remote[Broker].call(exportFixed(id)).asLocal
   }
@@ -117,15 +128,15 @@ import scala.util.Success
 
   override def update(id: ID, state: State): Unit on StateComponent = this._state = state
   def exportFixed(id: Int): Set[(ID, EXPORT)] on Broker =
-    brokerExport.now.filter(_._1 != id)
+    brokerExport.now.filter(_._1 != id).toSet
   //Has problems.. override doesn't work very well I suppose..
   override def exports(id: Int): Set[(ID, EXPORT)] on Broker =
-    brokerExport.now.filter(_._1 != id)
+    brokerExport.now.filter(_._1 != id).toSet
   def process(id: ID, export: EXPORT): Unit on Broker = brokerExport.transform(exports => exports + (id -> export))
   def myState: State on Node = this.state(id)
-  def mySensors: Set[(LSNS, SensorData)] on Node = this.sense(id)
+  def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(id)
 
-  def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(LSNS, SensorData)]): (
+  def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
       EXPORT,
       State
   ) on Node =

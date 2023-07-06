@@ -5,7 +5,7 @@ scalaVersion := "2.13.2"
 resolvers += ("STG old bintray repo" at "http://www.st.informatik.tu-darmstadt.de/maven/").withAllowInsecureProtocol(true)
 // Library versions
 val scalaLociVersion = "0.4.0"
-val scafiVersion = "0.3.3"
+val scafiVersion = "1.1.0"
 // Dependencies utils
 def scafi(packageName : String) = "it.unibo.scafi" %% s"scafi-$packageName" % scafiVersion
 //It seems that POM file with _%% doesn't work in sbt...
