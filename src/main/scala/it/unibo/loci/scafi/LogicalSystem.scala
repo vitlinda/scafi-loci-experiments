@@ -31,7 +31,7 @@ import LociIncarnation._
   // α
   @peer type ActuatorComponent
   def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent =
-    println(s"id : $id --- result : ${export.root[Any]()} |---| export : ${export.root[Any]()} \n")
+    println(s"id : $id |---| export : ${export.root[Any]()} \n")
   // σ
   @peer type SensorComponent
   def sense(id: ID): Set[(CNAME, SensorData)] on SensorComponent = Set(

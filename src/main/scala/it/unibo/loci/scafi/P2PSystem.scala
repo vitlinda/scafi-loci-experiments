@@ -13,6 +13,11 @@ import loci.serializer.circe._
 import java.util.UUID
 import io.circe.syntax.EncoderOps
 
+import scala.concurrent.Future
+import scala.util.Failure
+import scala.util.Success
+import scala.concurrent.ExecutionContext.Implicits.global
+
 @multitier class P2PSystem extends LogicalSystem {
   @peer type Node <: { type Tie <: Multiple[Node] }
   @peer type BehaviourComponent <: Node
@@ -23,15 +28,12 @@ import io.circe.syntax.EncoderOps
 
   private var _state: EXPORT on Node = factory.emptyExport()
   private val mid: ID on Node = UUID.randomUUID().hashCode()
-  private val localExports: Var[(ID, Map[ID, EXPORT])] on Node = on[Node](Var((mid, Map.empty[ID, EXPORT])))
-  def process(id: ID, export: EXPORT): Unit on Node = placed { // add the id and export of the nbrs to my localExports
-    localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
-  }
+  private val localExports: Local[Var[(ID, Map[ID, EXPORT])]] on Node = Var((mid, Map.empty[ID, EXPORT]))
+  private val remoteNodesIds: Local[Var[Map[Remote[Node], ID]]] on Node = Var(Map.empty[Remote[Node], ID])
 
-  // quando uno si toglie dire a tutti che ti sei tolto
-  // fare che i messaggi scadono dopo un po'.
-  // quando arriva export salvo id e momento in cui mandato, ogni tot controllo il tempo corrente
-  // delta ragionevole (in base ad applicazione se molto dinamico meglio avere tempo più breve) 3 volte al tempo di valutazione
+  // add the id and export of the nbrs to my localExports
+  def process(id: ID, export: EXPORT): Unit on Node =
+    localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
 
   override def state(id: ID): State on StateComponent = _state
 
@@ -50,17 +52,41 @@ import io.circe.syntax.EncoderOps
   ) on Node =
     super.compute(id, state, exports, sensors)
 
+  def addRemoteNode(node: Remote[Node]): Local[Unit] on Node = {
+    val id: Future[ID] = (mid from node).asLocal
+    id.onComplete {
+      case Success(value) => remoteNodesIds.transform(_ + (node -> value))
+      case Failure(_) => println("Failed to get the id")
+    }
+  }
+
+  def removeExport(node: Remote[Node]): Local[Unit] on Node = {
+    val id = remoteNodesIds.now(node)
+    remoteNodesIds.transform(_ - node)
+    localExports.transform { case (myId, exports) =>
+      (myId, exports - exports.find(_._1 == id).get._1)
+    }
+  }
+
+  // another approach: an export expires after a while and is removed from the exports of a node
+  // when an export arrives, save the id and the time. After a delta time checks all the dates and discard the expired exports
+  // a reasonable delta could be 3 times the evaluation time
+  // if the application is really dynamic the delta should be shorter
+  // should be possible to pass the delta as a parameter
+
   def main(): Unit on Node = {
-//    remote[Node].left observe println
-//    remote[Node].joined.observe { x: Remote[Node] => println(x) }
+    remote[Node].joined observe addRemoteNode
+    remote[Node].left observe removeExport
+
+    remoteNodesIds.observe(a => println(s"the nodes: $a"))
+
     while (true) {
       val state = myState
       val myExports = exports(mid)
       val sensors = mySensors
       val result = computeLocal(mid, state, myExports, sensors)
-      remote.call(
-        process(mid, result._1)
-      ) // on every round does a remote call to every connected node, passing my id and export
+      // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
+      remote.call(process(mid, result._1))
       actuation(mid, result._1)
       update(mid, result._1)
       Thread.sleep(1000)
