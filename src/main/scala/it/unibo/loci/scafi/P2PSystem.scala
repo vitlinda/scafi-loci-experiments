@@ -64,7 +64,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
     val id = remoteNodesIds.now(node)
     remoteNodesIds.transform(_ - node)
     localExports.transform { case (myId, exports) =>
-      (myId, exports - exports.find(_._1 == id).get._1)
+      (myId, exports.filterNot(_._1 == id))
     }
   }
 
@@ -72,13 +72,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
   // when an export arrives, save the id and the time. After a delta time checks all the dates and discard the expired exports
   // a reasonable delta could be 3 times the evaluation time
   // if the application is really dynamic the delta should be shorter
-  // should be possible to pass the delta as a parameter
+  // the delta should be passed as a parameter
 
   def main(): Unit on Node = {
     remote[Node].joined observe addRemoteNode
     remote[Node].left observe removeExport
 
-    remoteNodesIds.observe(a => println(s"the nodes: $a"))
+//    remoteNodesIds.observe(a => println(s"nodes: $a"))
 
     while (true) {
       val state = myState
