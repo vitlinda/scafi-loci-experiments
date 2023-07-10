@@ -1,9 +1,6 @@
 package it.unibo.loci.scafi
 
-import it.unibo.loci.scafi.LociIncarnation.CNAME
-import it.unibo.loci.scafi.LociIncarnation.EXPORT
-import it.unibo.loci.scafi.LociIncarnation.ID
-import it.unibo.loci.scafi.LociIncarnation.factory
+import it.unibo.loci.scafi.LociIncarnation._
 import loci.language._
 import loci.language.transmitter.rescala._
 import loci.communicator.tcp._
@@ -19,6 +16,8 @@ import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier class P2PSystem extends LogicalSystem {
+  private val namespace = new BasicStandardSensorNames {}
+
   @peer type Node <: { type Tie <: Multiple[Node] }
   @peer type BehaviourComponent <: Node
   @peer type ActuatorComponent <: Node
@@ -46,17 +45,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
   def myState: State on Node = this.state(mid)
   def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(mid)
 
-  def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
+  def computeLocal(
+      id: ID,
+      state: State,
+      exports: Set[(ID, EXPORT)],
+      sensors: Set[(CNAME, SensorData)],
+      nbrSensors: Map[CNAME, Map[ID, Double]]
+  ): (
       EXPORT,
       State
   ) on Node =
-    super.compute(id, state, exports, sensors)
+    super.compute(id, state, exports, sensors, nbrSensors)
 
   def addRemoteNode(node: Remote[Node]): Local[Unit] on Node = {
     val id: Future[ID] = (mid from node).asLocal
     id.onComplete {
       case Success(value) => remoteNodesIds.transform(_ + (node -> value))
-      case Failure(_) => println("Failed to get the id")
+      case Failure(_) => println(s"Failed to get id from $node")
     }
   }
 
@@ -68,9 +73,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
     }
   }
 
-  // another approach: an export expires after a while and is removed from the exports of a node
+  // another approach could be: an export expires after a while and is removed from the exports of a node
   // when an export arrives, save the id and the time. After a delta time checks all the dates and discard the expired exports
-  // a reasonable delta could be 3 times the evaluation time
   // if the application is really dynamic the delta should be shorter
   // the delta should be passed as a parameter
 
@@ -81,10 +85,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 //    remoteNodesIds.observe(a => println(s"nodes: $a"))
 
     while (true) {
+      val nbrRange = remoteNodesIds.now.map { case (_, id) => id -> 1.0 }
+      val nbrSensors = Map(namespace.NBR_RANGE -> nbrRange)
       val state = myState
       val myExports = exports(mid)
       val sensors = mySensors
-      val result = computeLocal(mid, state, myExports, sensors)
+      val result = computeLocal(mid, state, myExports, sensors, nbrSensors)
       // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
       remote.call(process(mid, result._1))
       actuation(mid, result._1)

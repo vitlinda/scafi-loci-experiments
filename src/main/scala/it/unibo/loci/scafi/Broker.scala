@@ -44,7 +44,7 @@ import scala.concurrent.Future
       EXPORT,
       State
   ) on Node =
-    super.compute(id, state, exports, sensors)
+    super.compute(id, state, exports, sensors, Map.empty[CNAME, Map[ID, Double]])
   import scala.concurrent.ExecutionContext.Implicits.global
   def main(): Unit on Root = on[Node] {
     println("Device starts ...")

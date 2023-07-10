@@ -7,24 +7,21 @@ import LociIncarnation._
   * Deployment DOI : https://doi.org/10.3390/fi12110203
   */
 @multitier trait LogicalSystem { // defines only the component and the behaviour. The interaction is deployment-specific
-  type SensorData = Double // should be any or a wrap data class
+  type SensorData = Boolean // should be any or a wrap data class
   type State = EXPORT // should be coherent with the aggregate computing context
 
   /** Logical components used to define a device in a cyber-physical system.
     */
   // γ
   @peer type BehaviourComponent
-  def compute(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
+  def compute(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)], nbrSensors: Map[CNAME, Map[ID, Double]]): (
       EXPORT,
       State
   ) on BehaviourComponent = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
-    val context = new ContextImpl(id, exports + (id -> state), sensorsMap, Map.empty) // todo
-    val program = new AggregateProgram { // make it transmittable
-      override def main(): Any = foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))
-      // foldhood(0.0){_+_}{nbr{sense[Double]("temperature")}} / foldhood(0)(_+_){1}
-    }
-//    println(s"exportssss: ${context.exports()}")
+    val context = new ContextImpl(id, exports + (id -> state), sensorsMap, nbrSensors) // todo
+    val program = Programs.gradient()
+
     val result = program.round(context)
     (result, result)
   }
@@ -35,13 +32,39 @@ import LociIncarnation._
   // σ
   @peer type SensorComponent
   def sense(id: ID): Set[(CNAME, SensorData)] on SensorComponent = Set(
-    ("temperature", 40.0)
+    ("source", false)
   ) // Set.empty[(CNAME, SensorData)]
-  // k
+
   @peer type StateComponent
   def state(id: ID): State on StateComponent = on[StateComponent](factory.emptyExport())
   def update(id: ID, state: State): Unit on StateComponent = on[StateComponent] {}
   // x
   @peer type CommunicationComponent
   def exports(id: ID): Set[(ID, EXPORT)] on CommunicationComponent
+}
+
+object Programs {
+  def idOfNeighbours() = new AggregateProgram {
+    override def main(): Any = foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))
+  }
+
+  def averageTemperature() = new AggregateProgram {
+    override def main(): Any = foldhood(0.0)(_ + _)(nbr(sense[Double]("temperature"))) / foldhood(0)(_ + _) {
+      1
+    }
+  }
+
+  def pingPong() = new AggregateProgram {
+    override def main(): Any = ???
+  }
+
+  // minimum distances from any node to its closest “source node”.
+  def gradient() = new AggregateProgram with StandardSensors {
+    override def main(): Any = rep(Double.PositiveInfinity) { distance =>
+      mux(sense[Boolean]("source"))(0.0) {
+        minHoodPlus(nbr(distance) + nbrRange)
+      }
+    }
+  }
+
 }
