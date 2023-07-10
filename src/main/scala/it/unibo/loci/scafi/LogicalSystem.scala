@@ -14,7 +14,13 @@ import LociIncarnation._
     */
   // γ
   @peer type BehaviourComponent
-  def compute(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)], nbrSensors: Map[CNAME, Map[ID, Double]]): (
+  def compute(
+      id: ID,
+      state: State,
+      exports: Set[(ID, EXPORT)],
+      sensors: Set[(CNAME, SensorData)],
+      nbrSensors: Map[CNAME, Map[ID, Double]]
+  ): (
       EXPORT,
       State
   ) on BehaviourComponent = {
@@ -28,10 +34,12 @@ import LociIncarnation._
   // α
   @peer type ActuatorComponent
   def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent =
-    println(s"id : $id |---| export : ${export.root[Any]()} \n")
+    println(s"id: $id -- ${export.root[Any]()} \n")
+
   // σ
   @peer type SensorComponent
   def sense(id: ID): Set[(CNAME, SensorData)] on SensorComponent = Set(
+//    ("temperature", 20.0),
     ("source", false)
   ) // Set.empty[(CNAME, SensorData)]
 
@@ -52,10 +60,6 @@ object Programs {
     override def main(): Any = foldhood(0.0)(_ + _)(nbr(sense[Double]("temperature"))) / foldhood(0)(_ + _) {
       1
     }
-  }
-
-  def pingPong() = new AggregateProgram {
-    override def main(): Any = ???
   }
 
   // minimum distances from any node to its closest “source node”.

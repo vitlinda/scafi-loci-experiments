@@ -16,7 +16,7 @@ import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier class P2PSystem extends LogicalSystem {
-  private val namespace = new BasicStandardSensorNames {}
+  private val namespace = new StandardSpatialSensorNames {}
 
   @peer type Node <: { type Tie <: Multiple[Node] }
   @peer type BehaviourComponent <: Node
@@ -29,6 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   private val mid: ID on Node = UUID.randomUUID().hashCode()
   private val localExports: Local[Var[(ID, Map[ID, EXPORT])]] on Node = Var((mid, Map.empty[ID, EXPORT]))
   private val remoteNodesIds: Local[Var[Map[Remote[Node], ID]]] on Node = Var(Map.empty[Remote[Node], ID])
+  private var _connectedNodes: Local[Set[Remote[Node]]] on Node = Set.empty[Remote[Node]]
 
   // add the id and export of the nbrs to my localExports
   def process(id: ID, export: EXPORT): Unit on Node =
@@ -55,6 +56,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
       EXPORT,
       State
   ) on Node =
+//    println(s"computeLocal: $id, $state, $exports, $sensors, $nbrSensors")
     super.compute(id, state, exports, sensors, nbrSensors)
 
   def addRemoteNode(node: Remote[Node]): Local[Unit] on Node = {
@@ -73,22 +75,31 @@ import scala.concurrent.ExecutionContext.Implicits.global
     }
   }
 
+  def updateExports(nodes: Seq[Remote[Node]]): Local[Unit] on Node = {
+    val nodesToAdd = nodes.filterNot(remoteNodesIds.now.contains)
+    nodesToAdd.foreach(addRemoteNode)
+
+    val nodesToRemove = remoteNodesIds.now.keys.filterNot(nodes.contains(_))
+    nodesToRemove.foreach(removeExport)
+  }
+
   // another approach could be: an export expires after a while and is removed from the exports of a node
   // when an export arrives, save the id and the time. After a delta time checks all the dates and discard the expired exports
   // if the application is really dynamic the delta should be shorter
   // the delta should be passed as a parameter
 
   def main(): Unit on Node = {
-    remote[Node].joined observe addRemoteNode
-    remote[Node].left observe removeExport
+//    remote[Node].joined observe addRemoteNode
+//    remote[Node].left observe removeExport
 
-//    remoteNodesIds.observe(a => println(s"nodes: $a"))
+    remote[Node].connected observe updateExports
 
     while (true) {
-      val nbrRange = remoteNodesIds.now.map { case (_, id) => id -> 1.0 }
+      val exps = exports(mid)
+      val nbrRange = exps.map { case (id, _) => id -> 1.0 }.toMap + (mid -> 0.0)
       val nbrSensors = Map(namespace.NBR_RANGE -> nbrRange)
       val state = myState
-      val myExports = exports(mid)
+      val myExports = exps
       val sensors = mySensors
       val result = computeLocal(mid, state, myExports, sensors, nbrSensors)
       // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
@@ -100,7 +111,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   }
 }
 
-@multitier object SimpleExampleP2P extends P2PSystem()
+@multitier object SimpleExampleP2P extends P2PSystem
 
 object SystemP2PTest extends App {
   val port = 3245
@@ -116,6 +127,13 @@ object SystemP2PTest extends App {
   )
 }
 
+
+
+// A <-> B
+// A <-> C
+// B <-> C
+// C <-> D
+// D <-> E
 object A extends App {
   multitier start new Instance[SimpleExampleP2P.Node](listen[SimpleExampleP2P.Node] {
     TCP(43053)
@@ -134,9 +152,36 @@ object B extends App {
 }
 
 object C extends App {
-  multitier start new Instance[SimpleExampleP2P.Node](connect[SimpleExampleP2P.Node] {
-    TCP("localhost", 43053)
-  } and connect[SimpleExampleP2P.Node] {
-    TCP("localhost", 43054)
-  })
+  multitier start new Instance[SimpleExampleP2P.Node](
+    connect[SimpleExampleP2P.Node] {
+      TCP("localhost", 43053)
+    } and
+      listen[SimpleExampleP2P.Node] {
+        TCP(43055)
+      } and connect[SimpleExampleP2P.Node] {
+        TCP("localhost", 43054)
+      }
+  )
+}
+
+object D extends App {
+  multitier start new Instance[SimpleExampleP2P.Node](
+    listen[SimpleExampleP2P.Node] {
+      TCP(43056)
+    } and
+      connect[SimpleExampleP2P.Node] {
+        TCP("localhost", 43055)
+      }
+  )
+}
+
+object E extends App {
+  multitier start new Instance[SimpleExampleP2P.Node](
+    listen[SimpleExampleP2P.Node] {
+      TCP(43057)
+    } and
+      connect[SimpleExampleP2P.Node] {
+        TCP("localhost", 43056)
+      }
+  )
 }
