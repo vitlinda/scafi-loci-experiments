@@ -26,6 +26,7 @@ import LociIncarnation._
   ) on BehaviourComponent = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
     val context = new ContextImpl(id, exports + (id -> state), sensorsMap, nbrSensors) // todo
+//    println(s"context $id -- $context \n")
     val program = Programs.gradient()
 
     val result = program.round(context)
@@ -33,16 +34,17 @@ import LociIncarnation._
   }
   // α
   @peer type ActuatorComponent
-  def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent =
-    println(s"id: $id -- ${export.root[Any]()} \n")
+  def actuation(id: ID, export: EXPORT, imSource: Boolean): Unit on ActuatorComponent =
+    println(s"id: $id ($imSource) -- ${export.root[Any]()} \n")
+//    println(s"id: $id -- ${export} \n")
 
   // σ
   @peer type SensorComponent
-  def sense(id: ID): Set[(CNAME, SensorData)] on SensorComponent = Set(
-//    ("temperature", 20.0),
-    ("source", false)
-  ) // Set.empty[(CNAME, SensorData)]
-
+  def sense(id: ID, sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on SensorComponent = Set(
+    //    ("temperature", 20.0),
+    sensor
+  )
+  // k
   @peer type StateComponent
   def state(id: ID): State on StateComponent = on[StateComponent](factory.emptyExport())
   def update(id: ID, state: State): Unit on StateComponent = on[StateComponent] {}
@@ -66,7 +68,9 @@ object Programs {
   def gradient() = new AggregateProgram with StandardSensors {
     override def main(): Any = rep(Double.PositiveInfinity) { distance =>
       mux(sense[Boolean]("source"))(0.0) {
-        minHoodPlus(nbr(distance) + nbrRange)
+        minHoodPlus {
+          nbr(distance) + nbrRange
+        }
       }
     }
   }

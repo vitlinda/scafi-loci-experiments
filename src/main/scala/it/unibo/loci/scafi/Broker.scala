@@ -38,7 +38,7 @@ import scala.concurrent.Future
     brokerExport.now.filter(_._1 != id).toSet
   def process(id: ID, export: EXPORT): Unit on Broker = brokerExport.transform(exports => exports + (id -> export))
   def myState: State on Node = this.state(id)
-  def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(id)
+  def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(id, ("mySensor", true))
 
   def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
       EXPORT,
@@ -60,7 +60,7 @@ import scala.concurrent.Future
       val state = myState
       val result = computeLocal(id, state, export, sensors)
       update(id, result._2)
-      actuation(id, result._1)
+//      actuation(id, result._1, false)
       remote.call(process(id, result._1)).asLocal
     }.flatMap(a => Future(Thread.sleep(1000))).flatMap(_ => logic())
   }

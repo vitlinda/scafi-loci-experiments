@@ -12,11 +12,11 @@ import io.circe.syntax.EncoderOps
 
 import scala.concurrent.Future
 import scala.util.Failure
+import scala.util.Random
 import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier class P2PSystem extends LogicalSystem {
-  private val namespace = new StandardSpatialSensorNames {}
 
   @peer type Node <: { type Tie <: Multiple[Node] }
   @peer type BehaviourComponent <: Node
@@ -25,11 +25,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
   @peer type StateComponent <: Node
   @peer type CommunicationComponent <: Node
 
+  private val namespace = new StandardSpatialSensorNames {}
+
   private var _state: EXPORT on Node = factory.emptyExport()
   private val mid: ID on Node = UUID.randomUUID().hashCode()
   private val localExports: Local[Var[(ID, Map[ID, EXPORT])]] on Node = Var((mid, Map.empty[ID, EXPORT]))
   private val remoteNodesIds: Local[Var[Map[Remote[Node], ID]]] on Node = Var(Map.empty[Remote[Node], ID])
-  private var _connectedNodes: Local[Set[Remote[Node]]] on Node = Set.empty[Remote[Node]]
 
   // add the id and export of the nbrs to my localExports
   def process(id: ID, export: EXPORT): Unit on Node =
@@ -42,9 +43,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
     case Left(value) => throw new Exception(value)
   }
   override def exports(id: Int): Set[(ID, EXPORT)] on Node = localExports.now._2.toSet
-
   def myState: State on Node = this.state(mid)
-  def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(mid)
+  def mySensors(sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on Node = this.sense(mid, sensor)
 
   def computeLocal(
       id: ID,
@@ -56,7 +56,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
       EXPORT,
       State
   ) on Node =
-//    println(s"computeLocal: $id, $state, $exports, $sensors, $nbrSensors")
     super.compute(id, state, exports, sensors, nbrSensors)
 
   def addRemoteNode(node: Remote[Node]): Local[Unit] on Node = {
@@ -69,18 +68,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
   def removeExport(node: Remote[Node]): Local[Unit] on Node = {
     val id = remoteNodesIds.now(node)
-    remoteNodesIds.transform(_ - node)
     localExports.transform { case (myId, exports) =>
       (myId, exports.filterNot(_._1 == id))
     }
   }
 
-  def updateExports(nodes: Seq[Remote[Node]]): Local[Unit] on Node = {
-    val nodesToAdd = nodes.filterNot(remoteNodesIds.now.contains)
-    nodesToAdd.foreach(addRemoteNode)
+  def updateConnections(nodes: Seq[Remote[Node]]): Local[Unit] on Node = {
+    val remoteNodes = remoteNodesIds.now.keys.toSeq
+    val nodesToAdd = nodes diff remoteNodes
+    val nodesToRemove = remoteNodes diff nodes
 
-    val nodesToRemove = remoteNodesIds.now.keys.filterNot(nodes.contains(_))
-    nodesToRemove.foreach(removeExport)
+    nodesToAdd foreach addRemoteNode
+    nodesToRemove foreach removeExport
+
+    remoteNodesIds.transform(_ -- nodesToRemove)
   }
 
   // another approach could be: an export expires after a while and is removed from the exports of a node
@@ -89,22 +90,19 @@ import scala.concurrent.ExecutionContext.Implicits.global
   // the delta should be passed as a parameter
 
   def main(): Unit on Node = {
-//    remote[Node].joined observe addRemoteNode
-//    remote[Node].left observe removeExport
-
-    remote[Node].connected observe updateExports
+    remote[Node].connected observe updateConnections
+    val imSource = Math.random() < 0.25
 
     while (true) {
-      val exps = exports(mid)
-      val nbrRange = exps.map { case (id, _) => id -> 1.0 }.toMap + (mid -> 0.0)
-      val nbrSensors = Map(namespace.NBR_RANGE -> nbrRange)
       val state = myState
-      val myExports = exps
-      val sensors = mySensors
+      val myExports = exports(mid)
+      val nbrRange = myExports.map { case (id, _) => id -> 1.0 }.toMap + (mid -> 0.0)
+      val nbrSensors = Map(namespace.NBR_RANGE -> nbrRange)
+      val sensors = mySensors(("source", imSource))
       val result = computeLocal(mid, state, myExports, sensors, nbrSensors)
       // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
       remote.call(process(mid, result._1))
-      actuation(mid, result._1)
+      actuation(mid, result._1, imSource)
       update(mid, result._1)
       Thread.sleep(1000)
     }
@@ -113,27 +111,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier object SimpleExampleP2P extends P2PSystem
 
-object SystemP2PTest extends App {
-  val port = 3245
-  multitier.start(
-    new Instance[SimpleExampleP2P.Node](
-      connect[SimpleExampleP2P.Node](TCP(port).firstConnection)
-    )
-  )
-  multitier.start(
-    new Instance[SimpleExampleP2P.Node](
-      connect[SimpleExampleP2P.Node](TCP("localhost", port))
-    )
-  )
-}
-
-
-
-// A <-> B
-// A <-> C
-// B <-> C
-// C <-> D
-// D <-> E
+// A -> B
+// B -> C
+// C -> A
+// C -> D
+// D -> E
 object A extends App {
   multitier start new Instance[SimpleExampleP2P.Node](listen[SimpleExampleP2P.Node] {
     TCP(43053)
