@@ -25,18 +25,17 @@ import LociIncarnation._
       State
   ) on BehaviourComponent = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
-    val context = new ContextImpl(id, exports + (id -> state), sensorsMap, nbrSensors) // todo
-//    println(s"context $id -- $context \n")
+    val context = new ContextImpl(id, exports + (id -> state), sensorsMap, nbrSensors)
     val program = Programs.gradient()
 
     val result = program.round(context)
     (result, result)
   }
+
   // α
   @peer type ActuatorComponent
   def actuation(id: ID, export: EXPORT, imSource: Boolean): Unit on ActuatorComponent =
-    println(s"id: $id ($imSource) -- ${export.root[Any]()} \n")
-//    println(s"id: $id -- ${export} \n")
+    println(s"id: $id ${if (imSource) " (source)" else "         "} -- ${export.root[Any]()} \n")
 
   // σ
   @peer type SensorComponent
@@ -66,13 +65,14 @@ object Programs {
 
   // minimum distances from any node to its closest “source node”.
   def gradient() = new AggregateProgram with StandardSensors {
-    override def main(): Any = rep(Double.PositiveInfinity) { distance =>
-      mux(sense[Boolean]("source"))(0.0) {
-        minHoodPlus {
-          nbr(distance) + nbrRange
+    override def main(): Any = rep(Double.PositiveInfinity) {
+      distance =>
+        mux(sense[Boolean]("source"))(0.0) {
+          minHoodPlus {
+            nbr(distance) + nbrRange
+          }
         }
-      }
-    }
+    }  + " -- " + foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))
   }
 
 }

@@ -84,14 +84,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
     remoteNodesIds.transform(_ -- nodesToRemove)
   }
 
-  // another approach could be: an export expires after a while and is removed from the exports of a node
-  // when an export arrives, save the id and the time. After a delta time checks all the dates and discard the expired exports
-  // if the application is really dynamic the delta should be shorter
-  // the delta should be passed as a parameter
-
   def main(): Unit on Node = {
     remote[Node].connected observe updateConnections
-    val imSource = Math.random() < 0.25
+    val imSource = Math.random() < 0.5
 
     while (true) {
       val state = myState
@@ -111,6 +106,24 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier object SimpleExampleP2P extends P2PSystem
 
+object Network extends App {
+  val initialPort: Int = 43053
+  val numNodes = 4
+  val endPort = initialPort + numNodes
+  val ports = initialPort to endPort
+  val Seq((firstPort, secondNode), middle @ _*) = ports.zip(ports.tail)
+
+  val (lastPort, secondLastPort) = (ports.last, ports.head)
+  val firstNode = TCP(firstPort).firstConnection -> TCP(secondNode).firstConnection
+  val middleNodes = middle.map { case (current, next) => TCP("localhost", current) -> TCP(next).firstConnection }
+  val lastNode = TCP("localhost", lastPort) -> TCP("localhost", secondLastPort)
+  val nodes = firstNode +: middleNodes :+ lastNode
+  nodes.foreach { case (node, next) =>
+    val connections = connect[SimpleExampleP2P.Node](node) and connect[SimpleExampleP2P.Node](next)
+    multitier.start(new Instance[SimpleExampleP2P.Node](connections))
+  }
+}
+
 // A -> B
 // B -> C
 // C -> A
@@ -119,6 +132,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object A extends App {
   multitier start new Instance[SimpleExampleP2P.Node](listen[SimpleExampleP2P.Node] {
     TCP(43053)
+  } and connect[SimpleExampleP2P.Node] {
+    TCP("localhost", 43054)
+  } and connect[SimpleExampleP2P.Node] {
+    TCP("localhost", 43055)
   })
 }
 
@@ -129,6 +146,8 @@ object B extends App {
     } and
       connect[SimpleExampleP2P.Node] {
         TCP("localhost", 43053)
+      } and connect[SimpleExampleP2P.Node] {
+        TCP("localhost", 43055)
       }
   )
 }
@@ -142,6 +161,8 @@ object C extends App {
         TCP(43055)
       } and connect[SimpleExampleP2P.Node] {
         TCP("localhost", 43054)
+      } and connect[SimpleExampleP2P.Node] {
+        TCP("localhost", 43056)
       }
   )
 }
@@ -153,6 +174,8 @@ object D extends App {
     } and
       connect[SimpleExampleP2P.Node] {
         TCP("localhost", 43055)
+      } and connect[SimpleExampleP2P.Node] {
+        TCP("localhost", 43057)
       }
   )
 }
