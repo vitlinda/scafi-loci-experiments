@@ -6,6 +6,8 @@ ThisBuild / version          := "0.1.0"
 
 ThisBuild / semanticdbEnabled := true
 
+resolvers += "jitpack" at "https://jitpack.io"
+
 lazy val root = (project in file("."))
   .settings(
     name := "aggregate-loci-experiments",
