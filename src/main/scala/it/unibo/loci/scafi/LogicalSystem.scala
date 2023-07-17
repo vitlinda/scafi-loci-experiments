@@ -65,13 +65,15 @@ object Programs {
 
   // minimum distances from any node to its closest “source node”.
   def gradient() = new AggregateProgram with StandardSensors {
-    override def main(): Any = rep(Double.PositiveInfinity) { distance =>
-      mux(sense[Boolean]("source"))(0.0) {
-        minHoodPlus {
-          nbr(distance) + nbrRange
-        }
-      }
-    } + " -- " + foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))
+    override def main(): Any = {
+      s"${rep(Double.PositiveInfinity) { distance =>
+          mux(sense[Boolean]("source"))(0.0) {
+            minHoodPlus {
+              nbr(distance) + nbrRange
+            }
+          }
+        }} -- ${foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))}"
+    }
   }
 
 }

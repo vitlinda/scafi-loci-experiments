@@ -1,8 +1,7 @@
-package it.unibo.loci.scafi.embedded
+package it.unibo.loci.scafi.hybrid
 
 import loci.language._
 import it.unibo.loci.scafi.LociIncarnation._
-
 
 @multitier trait LogicalSystem { // defines only the component and the behaviour. The interaction is deployment-specific
   type SensorData = Boolean // should be any or a wrap data class
@@ -59,7 +58,6 @@ object Programs {
           nbr(distance) + nbrRange
         }
       }
-    } + " -- " + foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))
+    }
   }
-
 }

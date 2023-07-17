@@ -1,4 +1,4 @@
-package it.unibo.loci.scafi.embedded
+package it.unibo.loci.scafi.hybrid
 
 import it.unibo.loci.scafi.LociIncarnation._
 import loci.language._
@@ -17,10 +17,11 @@ import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
-@multitier class AggregateP2PSystem extends LogicalSystem {
-  @peer type Node
-  @peer type AggregateNode <: Node { type Tie <: Multiple[AggregateNode] with Single[BaseStation] }
-  @peer type BaseStation <: Node { type Tie <: Multiple[AggregateNode] }
+@multitier trait AggregateP2PSystem extends LogicalSystem with Monitoring {
+  @peer type BaseStation <: Monitor { type Tie <: Multiple[AggregateNode] with Multiple[Monitored] }
+  @peer type AggregateNode <: Monitored {
+    type Tie <: Multiple[AggregateNode] with Single[BaseStation] with Single[Monitor]
+  }
 
   private val namespace: Local[StandardSpatialSensorNames] on AggregateNode = new StandardSpatialSensorNames {}
   private var _state: EXPORT on AggregateNode = factory.emptyExport()
@@ -29,7 +30,7 @@ import scala.language.implicitConversions
   private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(
     Map.empty[Remote[AggregateNode], ID]
   )
-  private val currentNodeState: Evt[EXPORT] on AggregateNode = Evt[EXPORT]()
+  val currentNodeState: Evt[EXPORT] on AggregateNode = Evt[EXPORT]()
 
   def process(id: ID, export: EXPORT): Unit on AggregateNode =
     localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
@@ -82,9 +83,9 @@ import scala.language.implicitConversions
     remoteNodesIds.transform(_ -- nodesToRemove)
   }
 
-  def aggregateResults(): Unit on BaseStation = {
+  def nodesResults(): Unit on BaseStation = {
     currentNodeState.asLocalFromAllSeq observe { case (remote, export) =>
-      println(s"Received ${export.root[Any]()} from $remote")
+      super.monitorResults(remote, export)
     }
   }
 
@@ -109,7 +110,7 @@ import scala.language.implicitConversions
       Thread.sleep(1000)
     }
   } and on[BaseStation] {
-    aggregateResults()
+    nodesResults()
   }
 }
 
