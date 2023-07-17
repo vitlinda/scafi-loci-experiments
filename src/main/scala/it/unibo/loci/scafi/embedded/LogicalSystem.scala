@@ -1,19 +1,14 @@
-package it.unibo.loci.scafi
+package it.unibo.loci.scafi.embedded
 
 import loci.language._
-import LociIncarnation._
+import it.unibo.loci.scafi.LociIncarnation._
 
-/** Reference article : Pulverization in Cyber-Physical Systems: Engineering the Self-Organizing Logic Separated from
-  * Deployment DOI : https://doi.org/10.3390/fi12110203
-  */
+
 @multitier trait LogicalSystem { // defines only the component and the behaviour. The interaction is deployment-specific
   type SensorData = Boolean // should be any or a wrap data class
   type State = EXPORT // should be coherent with the aggregate computing context
 
-  /** Logical components used to define a device in a cyber-physical system.
-    */
-  // γ
-  @peer type BehaviourComponent
+  @peer type AggregateNode
   def compute(
       id: ID,
       state: State,
@@ -23,7 +18,7 @@ import LociIncarnation._
   ): (
       EXPORT,
       State
-  ) on BehaviourComponent = {
+  ) on AggregateNode = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
     val context = new ContextImpl(id, exports + (id -> state), sensorsMap, nbrSensors)
     val program = Programs.gradient()
@@ -32,24 +27,17 @@ import LociIncarnation._
     (result, result)
   }
 
-  // α
-  @peer type ActuatorComponent
-  def actuation(id: ID, export: EXPORT, imSource: Boolean): Unit on ActuatorComponent =
+  def actuation(id: ID, export: EXPORT, imSource: Boolean): Unit on AggregateNode =
     println(s"id: $id ${if (imSource) " (source)" else "         "} -- ${export.root[Any]()} \n")
 
-  // σ
-  @peer type SensorComponent
-  def sense(id: ID, sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on SensorComponent = Set(
+  def sense(id: ID, sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on AggregateNode = Set(
     //    ("temperature", 20.0),
     sensor
   )
-  // k
-  @peer type StateComponent
-  def state(id: ID): State on StateComponent = on[StateComponent](factory.emptyExport())
-  def update(id: ID, state: State): Unit on StateComponent = on[StateComponent] {}
-  // x
-  @peer type CommunicationComponent
-  def exports(id: ID): Set[(ID, EXPORT)] on CommunicationComponent
+
+  def state(id: ID): State on AggregateNode = on[AggregateNode](factory.emptyExport())
+  def update(id: ID, state: State): Unit on AggregateNode = on[AggregateNode] {}
+  def exports(id: ID): Set[(ID, EXPORT)] on AggregateNode
 }
 
 object Programs {

@@ -17,7 +17,6 @@ import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier class P2PSystem extends LogicalSystem {
-
   @peer type Node <: { type Tie <: Multiple[Node] }
   @peer type BehaviourComponent <: Node
   @peer type ActuatorComponent <: Node
@@ -67,7 +66,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   }
 
   def removeExport(node: Remote[Node]): Local[Unit] on Node = {
-    val id = remoteNodesIds.now(node)
+    val id = remoteNodesIds.now(implicitly)(node)
     localExports.transform { case (myId, exports) =>
       (myId, exports.filterNot(_._1 == id))
     }
