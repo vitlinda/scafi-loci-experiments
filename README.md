@@ -29,7 +29,7 @@ sbt "run it.unibo.loci.scafi.experiments.basestation.E"
 ``` 
 
 ### [2 - Base Station](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/basestation)
-This experiment introduces a base station in the network, i.e. a node that doesn't run an aggregate program
+This experiment introduces a base station in the network, i.e. a node that doesn't run an aggregate program, and "monitor" the other nodes.
 The base station collects the values of every node connected to it.
 Since the connected nodes are running an aggregate program, the values collected by the base station are the results of every node's round.
 This example assumes that every node is connected to the base station.

@@ -100,8 +100,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
       val nbrSensors: Map[CNAME, Map[ID, Double]] = Map(namespace.NBR_RANGE -> nbrRange)
       val sensors = mySensors(("source", imSource))
       val result = computeLocal(mid, state, myExports, sensors, nbrSensors)
-
-//      // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
+      // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
       remote.call(process(mid, result._1))
       actuation(mid, result._1, imSource)
       update(mid, result._1)
