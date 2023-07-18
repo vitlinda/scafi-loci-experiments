@@ -6,7 +6,7 @@ The experiments are based on the following paper: [Towards Pulverised Architectu
 
 ## How to run the experiments
 
-### 1 - [Dynamic connections]()
+### [1 - Dynamic connections](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/dynamiconnections)
 The goal of the experiment is to show a system that runs several examples of aggregate programs using ScaFi's constructs
 on a set of nodes connected via ScalaLoci.
 The system can adapt to changes (e.g. a node leaves the system and the computed values change accordingly).
@@ -28,7 +28,7 @@ sbt "run it.unibo.loci.scafi.experiments.basestation.D"
 sbt "run it.unibo.loci.scafi.experiments.basestation.E"
 ``` 
 
-### 2 - [Base Station]()
+### [2 - Base Station](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/basestation)
 This experiment introduces a base station in the network, i.e. a node that doesn't run an aggregate program
 The base station collects the values of every node connected to it.
 Since the connected nodes are running an aggregate program, the values collected by the base station are the results of every node's round.

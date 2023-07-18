@@ -1,4 +1,4 @@
-package it.unibo.loci.scafi.experiments.dynamicexports
+package it.unibo.loci.scafi.experiments.dynamiconnections
 
 import io.circe.syntax.EncoderOps
 import it.unibo.loci.scafi.commons.LociIncarnation._

@@ -8,7 +8,7 @@ import loci.serializer.circe._
 
 import java.util.UUID
 import it.unibo.loci.scafi.commons.LociIncarnation._
-import it.unibo.loci.scafi.experiments.dynamicexports.LogicalSystem
+import it.unibo.loci.scafi.experiments.dynamiconnections.LogicalSystem
 
 import scala.concurrent.Future
 
