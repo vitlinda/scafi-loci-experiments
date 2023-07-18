@@ -1,4 +1,4 @@
-package it.unibo.loci.scafi
+package it.unibo.loci.scafi.commons
 
 import io.circe.Json
 import io.circe._

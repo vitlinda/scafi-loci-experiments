@@ -1,6 +1,6 @@
-package it.unibo.loci.scafi.hybrid
+package it.unibo.loci.scafi.experiments.basestation
 
-import it.unibo.loci.scafi.LociIncarnation._
+import it.unibo.loci.scafi.commons.LociIncarnation._
 import loci.language._
 import rescala.default._
 
@@ -9,7 +9,7 @@ import rescala.default._
   @peer type Monitor <: Node { type Tie <: Multiple[Monitored] }
   @peer type Monitored <: Node { type Tie <: Single[Monitor] }
 
-  def monitorResults(remote: Remote[Monitored], export: EXPORT): Local[Unit] on Monitor = println(
+  def monitorNode(remote: Remote[Monitored], export: EXPORT): Local[Unit] on Monitor = println(
     s"Received value: ${export.root[Any]()} from: $remote"
   )
 }

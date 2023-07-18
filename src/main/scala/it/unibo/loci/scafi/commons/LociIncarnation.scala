@@ -1,4 +1,4 @@
-package it.unibo.loci.scafi
+package it.unibo.loci.scafi.commons
 
 import it.unibo.scafi.incarnations.AbstractTestIncarnation
 

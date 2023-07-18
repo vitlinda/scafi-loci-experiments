@@ -1,6 +1,6 @@
-package it.unibo.loci.scafi.hybrid
+package it.unibo.loci.scafi.experiments.basestation
 
-import it.unibo.loci.scafi.LociIncarnation._
+import it.unibo.loci.scafi.commons.LociIncarnation._
 import loci.language._
 import loci.language.transmitter.rescala._
 import loci.communicator.tcp._
@@ -15,9 +15,8 @@ import scala.util.Failure
 import scala.util.Random
 import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.implicitConversions
 
-@multitier trait AggregateP2PSystem extends LogicalSystem with Monitoring {
+@multitier trait AggregateBaseStation extends LogicalSystem with Monitoring {
   @peer type BaseStation <: Monitor { type Tie <: Multiple[AggregateNode] with Multiple[Monitored] }
   @peer type AggregateNode <: Monitored {
     type Tie <: Multiple[AggregateNode] with Single[BaseStation] with Single[Monitor]
@@ -30,7 +29,7 @@ import scala.language.implicitConversions
   private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(
     Map.empty[Remote[AggregateNode], ID]
   )
-  val currentNodeState: Evt[EXPORT] on AggregateNode = Evt[EXPORT]()
+  private val currentNodeState: Evt[EXPORT] on AggregateNode = Evt[EXPORT]()
 
   def process(id: ID, export: EXPORT): Unit on AggregateNode =
     localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
@@ -83,9 +82,9 @@ import scala.language.implicitConversions
     remoteNodesIds.transform(_ -- nodesToRemove)
   }
 
-  def nodesResults(): Unit on BaseStation = {
+  def gatherValues(): Unit on BaseStation = {
     currentNodeState.asLocalFromAllSeq observe { case (remote, export) =>
-      super.monitorResults(remote, export)
+      super.monitorNode(remote, export)
     }
   }
 
@@ -105,36 +104,18 @@ import scala.language.implicitConversions
 //      // at every round perform a remote call and send my id and export to all my neighbours (the connected nodes)
       remote.call(process(mid, result._1))
       actuation(mid, result._1, imSource)
-      currentNodeState.fire(result._1)
       update(mid, result._1)
+      currentNodeState.fire(result._1)
       Thread.sleep(1000)
     }
   } and on[BaseStation] {
-    nodesResults()
+    gatherValues()
   }
 }
 
-@multitier object SimpleExampleP2P extends AggregateP2PSystem
+@multitier object SimpleExampleP2P extends AggregateBaseStation
 
-object Network extends App {
-  val initialPort: Int = 43053
-  val numNodes = 4
-  val endPort = initialPort + numNodes
-  val ports = initialPort to endPort
-  val Seq((firstPort, secondNode), middle @ _*) = ports.zip(ports.tail)
-
-  val (lastPort, secondLastPort) = (ports.last, ports.head)
-  val firstNode = TCP(firstPort).firstConnection -> TCP(secondNode).firstConnection
-  val middleNodes = middle.map { case (current, next) => TCP("localhost", current) -> TCP(next).firstConnection }
-  val lastNode = TCP("localhost", lastPort) -> TCP("localhost", secondLastPort)
-  val nodes = firstNode +: middleNodes :+ lastNode
-  nodes.foreach { case (node, next) =>
-    val connections = connect[SimpleExampleP2P.AggregateNode](node) and connect[SimpleExampleP2P.AggregateNode](next)
-    multitier.start(new Instance[SimpleExampleP2P.AggregateNode](connections))
-  }
-}
-
-object BaseStationServer extends App {
+object BaseStationNode extends App {
   multitier start new Instance[SimpleExampleP2P.BaseStation](
     listen[SimpleExampleP2P.AggregateNode] {
       TCP(43052)
@@ -190,9 +171,9 @@ object C extends App {
       } and connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43056)
       }
-//      and connect[SimpleExampleP2P.BaseStation] {
-//        TCP("localhost", 43052)
-//      }
+      and connect[SimpleExampleP2P.BaseStation] {
+        TCP("localhost", 43052)
+      }
   )
 }
 
@@ -206,9 +187,9 @@ object D extends App {
       } and connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43057)
       }
-//      and connect[SimpleExampleP2P.BaseStation] {
-//        TCP("localhost", 43052)
-//      }
+      and connect[SimpleExampleP2P.BaseStation] {
+        TCP("localhost", 43052)
+      }
   )
 }
 
@@ -220,8 +201,8 @@ object E extends App {
       connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43056)
       }
-//      and connect[SimpleExampleP2P.BaseStation] {
-//        TCP("localhost", 43052)
-//      }
+      and connect[SimpleExampleP2P.BaseStation] {
+        TCP("localhost", 43052)
+      }
   )
 }

@@ -1,14 +1,15 @@
 package it.unibo.loci.scafi
 
-import loci.language._
+import it.unibo.loci.scafi.commons.LociIncarnation._
 import loci.language.transmitter.rescala._
-import loci.communicator.tcp._
-import rescala.default._
 import loci.serializer.circe._
+
+import loci.communicator.tcp._
+import loci.language._
+import rescala.default._
 
 import java.util.UUID
 // Incarnation used to define aggregate programs
-import LociIncarnation._
 
 // A template for a multitier aggregate system. It defines i) node type, ii) placement types and iii) data stream. Program isn't known a priori
 @multitier class P2PAggregateSystemTemplate(program: => AggregateProgram) {

@@ -1,13 +1,19 @@
-package it.unibo.loci.scafi.hybrid
+package it.unibo.loci.scafi.experiments.dynamicexports
 
+import it.unibo.loci.scafi.commons.LociIncarnation._
 import loci.language._
-import it.unibo.loci.scafi.LociIncarnation._
 
+/** Reference article : Pulverization in Cyber-Physical Systems: Engineering the Self-Organizing Logic Separated from
+  * Deployment DOI : https://doi.org/10.3390/fi12110203
+  */
 @multitier trait LogicalSystem { // defines only the component and the behaviour. The interaction is deployment-specific
   type SensorData = Boolean // should be any or a wrap data class
   type State = EXPORT // should be coherent with the aggregate computing context
 
-  @peer type AggregateNode
+  /** Logical components used to define a device in a cyber-physical system.
+    */
+  // γ
+  @peer type BehaviourComponent
   def compute(
       id: ID,
       state: State,
@@ -17,7 +23,7 @@ import it.unibo.loci.scafi.LociIncarnation._
   ): (
       EXPORT,
       State
-  ) on AggregateNode = {
+  ) on BehaviourComponent = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
     val context = new ContextImpl(id, exports + (id -> state), sensorsMap, nbrSensors)
     val program = Programs.gradient()
@@ -26,17 +32,24 @@ import it.unibo.loci.scafi.LociIncarnation._
     (result, result)
   }
 
-  def actuation(id: ID, export: EXPORT, imSource: Boolean): Unit on AggregateNode =
+  // α
+  @peer type ActuatorComponent
+  def actuation(id: ID, export: EXPORT, imSource: Boolean): Unit on ActuatorComponent =
     println(s"id: $id ${if (imSource) " (source)" else "         "} -- ${export.root[Any]()} \n")
 
-  def sense(id: ID, sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on AggregateNode = Set(
+  // σ
+  @peer type SensorComponent
+  def sense(id: ID, sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on SensorComponent = Set(
     //    ("temperature", 20.0),
     sensor
   )
-
-  def state(id: ID): State on AggregateNode = on[AggregateNode](factory.emptyExport())
-  def update(id: ID, state: State): Unit on AggregateNode = on[AggregateNode] {}
-  def exports(id: ID): Set[(ID, EXPORT)] on AggregateNode
+  // k
+  @peer type StateComponent
+  def state(id: ID): State on StateComponent = on[StateComponent](factory.emptyExport())
+  def update(id: ID, state: State): Unit on StateComponent = on[StateComponent] {}
+  // x
+  @peer type CommunicationComponent
+  def exports(id: ID): Set[(ID, EXPORT)] on CommunicationComponent
 }
 
 object Programs {
@@ -52,12 +65,15 @@ object Programs {
 
   // minimum distances from any node to its closest “source node”.
   def gradient() = new AggregateProgram with StandardSensors {
-    override def main(): Any = rep(Double.PositiveInfinity) { distance =>
-      mux(sense[Boolean]("source"))(0.0) {
-        minHoodPlus {
-          nbr(distance) + nbrRange
-        }
-      }
+    override def main(): Any = {
+      s"${rep(Double.PositiveInfinity) { distance =>
+          mux(sense[Boolean]("source"))(0.0) {
+            minHoodPlus {
+              nbr(distance) + nbrRange
+            }
+          }
+        }} -- ${foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))}"
     }
   }
+
 }
