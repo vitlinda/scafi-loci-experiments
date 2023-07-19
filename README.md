@@ -11,7 +11,7 @@ The goal of the experiment is to show a system that runs several examples of agg
 on a set of nodes connected via ScalaLoci.
 The system can adapt to changes (e.g. a node leaves the system and the computed values change accordingly).
 
-When running the gradient example, you should see some nodes that are randomly selected as sources that will have a value of 0.0 (distance 0.0) and the other nodes will start with an initial value of "infinity" that will be updated to the minimum distance from the sources.
+When running the gradient example, you should see some nodes that are randomly selected as sources that will have a value of 0.0 (distance 0.0) and the other nodes will start with an initial value of "infinity" that will be updated to the minimum distance from the closest source.
 If a node leaves or join the network, the other nodes will update their values accordingly.
 
 #### 1.1 - Run the nodes
@@ -29,8 +29,7 @@ sbt "run it.unibo.loci.scafi.experiments.basestation.E"
 ``` 
 
 ### [2 - Base Station](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/basestation)
-This experiment introduces a base station in the network, i.e. a node that doesn't run an aggregate program, and "monitor" the other nodes.
-The base station collects the values of every node connected to it.
+This experiment introduces to the network of the experiment 1 a node that doesn't run an aggregate program (a base station). This node act as a "monitor" and collects the values of every node connected to it.
 Since the connected nodes are running an aggregate program, the values collected by the base station are the results of every node's round.
 This example assumes that every node is connected to the base station.
 
