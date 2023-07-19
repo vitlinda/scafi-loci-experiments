@@ -4,7 +4,7 @@ This repository contains experiments about the integration between [ScaFi](https
 
 The experiments are based on the following paper: [Towards Pulverised Architectures for Collective Adaptive Systems through Multi-Tier Programming](https://ieeexplore.ieee.org/document/9599177)
 
-## How to run the experiments
+## The experiments
 
 ### [1 - Dynamic connections](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/dynamiconnections)
 The goal of the experiment is to show a system that runs several examples of aggregate programs using ScaFi's constructs
@@ -29,7 +29,7 @@ sbt "run it.unibo.loci.scafi.experiments.basestation.E"
 ``` 
 
 ### [2 - Base Station](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/basestation)
-This experiment introduces to the network of the experiment 1 a node that doesn't run an aggregate program (a base station). This node act as a "monitor" and collects the values of every node connected to it.
+This experiment introduces to the network of the experiment __1__ a node that doesn't run an aggregate program (a base station). This node act as a "monitor" and collects the values of every node connected to it.
 Since the connected nodes are running an aggregate program, the values collected by the base station are the results of every node's round.
 This example assumes that every node is connected to the base station.
 

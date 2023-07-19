@@ -1,12 +1,11 @@
-package it.unibo.loci.scafi
-
-import it.unibo.loci.scafi.commons.LociIncarnation._
-import loci.language.transmitter.rescala._
-import loci.serializer.circe._
+package it.unibo.loci.scafi.pulverization
 
 import loci.communicator.tcp._
 import loci.language._
 import rescala.default._
+import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
+import loci.language.transmitter.rescala._
+import loci.serializer.circe._
 
 import java.util.UUID
 // Incarnation used to define aggregate programs

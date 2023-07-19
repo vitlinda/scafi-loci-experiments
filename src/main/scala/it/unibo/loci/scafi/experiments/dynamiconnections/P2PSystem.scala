@@ -1,10 +1,10 @@
 package it.unibo.loci.scafi.experiments.dynamiconnections
 
 import io.circe.syntax.EncoderOps
-import it.unibo.loci.scafi.commons.LociIncarnation._
+import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
+import it.unibo.loci.scafi.experiments.commons.LogicalSystem
 import loci.language.transmitter.rescala._
 import loci.serializer.circe._
-
 import loci.communicator.tcp._
 import loci.language._
 import rescala.default._
@@ -16,33 +16,28 @@ import scala.util.Failure
 import scala.util.Success
 
 @multitier class P2PSystem extends LogicalSystem {
-  @peer type Node <: { type Tie <: Multiple[Node] }
-  @peer type BehaviourComponent <: Node
-  @peer type ActuatorComponent <: Node
-  @peer type SensorComponent <: Node
-  @peer type StateComponent <: Node
-  @peer type CommunicationComponent <: Node
+  @peer type AggregateNode <: { type Tie <: Multiple[AggregateNode] }
 
   private val namespace = new StandardSpatialSensorNames {}
 
-  private var _state: EXPORT on Node = factory.emptyExport()
-  private val mid: ID on Node = UUID.randomUUID().hashCode()
-  private val localExports: Local[Var[(ID, Map[ID, EXPORT])]] on Node = Var((mid, Map.empty[ID, EXPORT]))
-  private val remoteNodesIds: Local[Var[Map[Remote[Node], ID]]] on Node = Var(Map.empty[Remote[Node], ID])
+  private var _state: EXPORT on AggregateNode = factory.emptyExport()
+  private val mid: ID on AggregateNode = UUID.randomUUID().hashCode()
+  private val localExports: Local[Var[(ID, Map[ID, EXPORT])]] on AggregateNode = Var((mid, Map.empty[ID, EXPORT]))
+  private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(Map.empty[Remote[AggregateNode], ID])
 
   // add the id and export of the nbrs to my localExports
-  def process(id: ID, export: EXPORT): Unit on Node =
+  def process(id: ID, export: EXPORT): Unit on AggregateNode =
     localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
 
-  override def state(id: ID): State on StateComponent = _state
+  override def state(id: ID): State on AggregateNode = _state
 
-  override def update(id: ID, state: State): Unit on StateComponent = this._state = state.asJson.as[EXPORT] match {
+  override def update(id: ID, state: State): Unit on AggregateNode = this._state = state.asJson.as[EXPORT] match {
     case Right(value) => value
     case Left(value) => throw new Exception(value)
   }
-  override def exports(id: Int): Set[(ID, EXPORT)] on Node = localExports.now._2.toSet
-  def myState: State on Node = this.state(mid)
-  def mySensors(sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on Node = this.sense(mid, sensor)
+  override def exports(id: Int): Set[(ID, EXPORT)] on AggregateNode = localExports.now._2.toSet
+  def myState: State on AggregateNode = this.state(mid)
+  def mySensors(sensor: (CNAME, SensorData)): Set[(CNAME, SensorData)] on AggregateNode = this.sense(mid, sensor)
 
   def computeLocal(
       id: ID,
@@ -53,10 +48,10 @@ import scala.util.Success
   ): (
       EXPORT,
       State
-  ) on Node =
+  ) on AggregateNode =
     super.compute(id, state, exports, sensors, nbrSensors)
 
-  def addRemoteNode(node: Remote[Node]): Local[Unit] on Node = {
+  def addRemoteNode(node: Remote[AggregateNode]): Local[Unit] on AggregateNode = {
     val id: Future[ID] = (mid from node).asLocal
     id.onComplete {
       case Success(value) => remoteNodesIds.transform(_ + (node -> value))
@@ -64,14 +59,14 @@ import scala.util.Success
     }
   }
 
-  def removeExport(node: Remote[Node]): Local[Unit] on Node = {
+  def removeExport(node: Remote[AggregateNode]): Local[Unit] on AggregateNode = {
     val id = remoteNodesIds.now(implicitly)(node)
     localExports.transform { case (myId, exports) =>
       (myId, exports.filterNot(_._1 == id))
     }
   }
 
-  def updateConnections(nodes: Seq[Remote[Node]]): Local[Unit] on Node = {
+  def updateConnections(nodes: Seq[Remote[AggregateNode]]): Local[Unit] on AggregateNode = {
     val remoteNodes = remoteNodesIds.now.keys.toSeq
     val nodesToAdd = nodes diff remoteNodes
     val nodesToRemove = remoteNodes diff nodes
@@ -82,8 +77,8 @@ import scala.util.Success
     remoteNodesIds.transform(_ -- nodesToRemove)
   }
 
-  def main(): Unit on Node = {
-    remote[Node].connected observe updateConnections
+  def main(): Unit on AggregateNode = {
+    remote[AggregateNode].connected observe updateConnections
     val imSource = Math.random() < 0.5
 
     while (true) {
@@ -100,91 +95,4 @@ import scala.util.Success
       Thread.sleep(1000)
     }
   }
-}
-
-@multitier object SimpleExampleP2P extends P2PSystem
-
-object Network extends App {
-  val initialPort: Int = 43053
-  val numNodes = 4
-  val endPort = initialPort + numNodes
-  val ports = initialPort to endPort
-  val Seq((firstPort, secondNode), middle @ _*) = ports.zip(ports.tail)
-
-  val (lastPort, secondLastPort) = (ports.last, ports.head)
-  val firstNode = TCP(firstPort).firstConnection -> TCP(secondNode).firstConnection
-  val middleNodes = middle.map { case (current, next) => TCP("localhost", current) -> TCP(next).firstConnection }
-  val lastNode = TCP("localhost", lastPort) -> TCP("localhost", secondLastPort)
-  val nodes = firstNode +: middleNodes :+ lastNode
-  nodes.foreach { case (node, next) =>
-    val connections = connect[SimpleExampleP2P.Node](node) and connect[SimpleExampleP2P.Node](next)
-    multitier.start(new Instance[SimpleExampleP2P.Node](connections))
-  }
-}
-
-// A -> B
-// B -> C
-// C -> A
-// C -> D
-// D -> E
-object A extends App {
-  multitier start new Instance[SimpleExampleP2P.Node](listen[SimpleExampleP2P.Node] {
-    TCP(43053)
-  } and connect[SimpleExampleP2P.Node] {
-    TCP("localhost", 43054)
-  } and connect[SimpleExampleP2P.Node] {
-    TCP("localhost", 43055)
-  })
-}
-
-object B extends App {
-  multitier start new Instance[SimpleExampleP2P.Node](
-    listen[SimpleExampleP2P.Node] {
-      TCP(43054)
-    } and
-      connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43053)
-      } and connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43055)
-      }
-  )
-}
-
-object C extends App {
-  multitier start new Instance[SimpleExampleP2P.Node](
-    connect[SimpleExampleP2P.Node] {
-      TCP("localhost", 43053)
-    } and
-      listen[SimpleExampleP2P.Node] {
-        TCP(43055)
-      } and connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43054)
-      } and connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43056)
-      }
-  )
-}
-
-object D extends App {
-  multitier start new Instance[SimpleExampleP2P.Node](
-    listen[SimpleExampleP2P.Node] {
-      TCP(43056)
-    } and
-      connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43055)
-      } and connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43057)
-      }
-  )
-}
-
-object E extends App {
-  multitier start new Instance[SimpleExampleP2P.Node](
-    listen[SimpleExampleP2P.Node] {
-      TCP(43057)
-    } and
-      connect[SimpleExampleP2P.Node] {
-        TCP("localhost", 43056)
-      }
-  )
 }

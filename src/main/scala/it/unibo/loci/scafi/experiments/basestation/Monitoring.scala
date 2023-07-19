@@ -1,8 +1,8 @@
 package it.unibo.loci.scafi.experiments.basestation
 
-import it.unibo.loci.scafi.commons.LociIncarnation._
 import loci.language._
 import rescala.default._
+import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
 
 @multitier trait Monitoring {
   @peer type Node
