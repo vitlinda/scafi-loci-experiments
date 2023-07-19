@@ -1,21 +1,17 @@
 package it.unibo.loci.scafi.experiments.basestation
 
+import io.circe.syntax.EncoderOps
+import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
+import it.unibo.loci.scafi.experiments.commons.LogicalSystem
+import java.util.UUID
 import loci.language._
 import loci.language.transmitter.rescala._
-import loci.communicator.tcp._
-import rescala.default._
 import loci.serializer.circe._
-
-import java.util.UUID
-import io.circe.syntax.EncoderOps
-import it.unibo.loci.scafi.experiments.commons.LogicalSystem
-import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
-
+import rescala.default._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Failure
-import scala.util.Random
 import scala.util.Success
-import scala.concurrent.ExecutionContext.Implicits.global
 
 @multitier trait AggregateBaseStation extends LogicalSystem with Monitoring {
   @peer type BaseStation <: Monitor { type Tie <: Multiple[AggregateNode] with Multiple[Monitored] }

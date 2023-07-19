@@ -1,7 +1,7 @@
 package it.unibo.loci.scafi.experiments.commons
 
-import io.circe.Json
 import io.circe._
+import io.circe.Json
 import it.unibo.scafi.distrib.actor.serialization.BasicJsonAnySerialization
 import it.unibo.scafi.distrib.actor.serialization.BasicSerializers
 import it.unibo.scafi.incarnations.Incarnation

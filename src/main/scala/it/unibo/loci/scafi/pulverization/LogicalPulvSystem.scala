@@ -1,29 +1,34 @@
 package it.unibo.loci.scafi.pulverization
 
-import loci.language._
+import io.circe.syntax.EncoderOps
 import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
-
+import java.util.UUID
+import loci.communicator.tcp.TCP
+import loci.language._
+import loci.language.transmitter.rescala._
+import loci.serializer.circe._
+import rescala.default._
+import scala.concurrent.Future
 
 /** Reference article : Pulverization in Cyber-Physical Systems: Engineering the Self-Organizing Logic Separated from
   * Deployment DOI : https://doi.org/10.3390/fi12110203
   */
 
-@multitier trait LogicalPulvSystem { //defines only the component and the behaviour. The interaction is deployment-specific
+@multitier trait LogicalPulvSystem { // defines only the component and the behaviour. The interaction is deployment-specific
   type SensorData = String // should be any or a wrap data class
   type State = EXPORT // should be coherent with the aggregate computing context
-  /**
-   * Logical components used to define a device in a cyber-physical system.
-   */
+  /** Logical components used to define a device in a cyber-physical system.
+    */
   // γ
   @peer type BehaviourComponent
   def compute(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
-    EXPORT,
+      EXPORT,
       State
-    ) on BehaviourComponent = {
+  ) on BehaviourComponent = {
     val sensorsMap = sensors.map { case (id, value) => (id, (value: Any)) }.toMap
-    val context = new ContextImpl(id, exports + (id -> state), sensorsMap, Map.empty) //todo
-    val program = new AggregateProgram { //make it trasmittable
-      override def main(): Any = foldhood(Set.empty[ID])(_++_)(nbr{Set(mid)})
+    val context = new ContextImpl(id, exports + (id -> state), sensorsMap, Map.empty) // todo
+    val program = new AggregateProgram { // make it trasmittable
+      override def main(): Any = foldhood(Set.empty[ID])(_ ++ _)(nbr(Set(mid)))
     }
     println(s"exportssss: ${context.exports()}")
     val result = program.round(context)
@@ -31,9 +36,8 @@ import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
   }
   // α
   @peer type ActuatorComponent
-  def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent = {
+  def actuation(id: ID, export: EXPORT): Unit on ActuatorComponent =
     println(s"id : $id --- result : ${export.root[Any]()} |---| export : $export \n")
-  }
   // σ
   @peer type SensorComponent
   def sense(id: ID): Set[(CNAME, SensorData)] on SensorComponent = Set.empty[(CNAME, SensorData)]
@@ -58,9 +62,11 @@ import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
   private val mid: ID on Node = UUID.randomUUID().hashCode()
   private val localExports: Var[(ID, Map[ID, EXPORT])] on Node = on[Node](Var((mid, Map.empty[ID, EXPORT])))
   def process(id: ID, export: EXPORT): Unit on Node = placed {
-    println("remote  "+ id + " local: " + mid + " export: " + export.root[Any]() + " local exports " + localExports.now)
+    println(
+      "remote  " + id + " local: " + mid + " export: " + export.root[Any]() + " local exports " + localExports.now
+    )
     println("_____")
-    localExports.transform { case (myId, exports) => (myId, exports + (id -> export))}
+    localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
   }
 
   override def state(id: ID): State on StateComponent = _state
@@ -75,9 +81,9 @@ import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
   def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(mid)
 
   def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
-    EXPORT,
+      EXPORT,
       State
-    ) on Node =
+  ) on Node =
     super.compute(id, state, exports, sensors)
 
   def main(): Unit on Node = {
@@ -116,7 +122,7 @@ import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
   override def update(id: ID, state: State): Unit on StateComponent = this._state = state
   def exportFixed(id: Int): Set[(ID, EXPORT)] on Broker =
     brokerExport.now.filter(_._1 != id).toSet
-  //Has problems.. override doesn't work very well I suppose..
+  // Has problems.. override doesn't work very well I suppose..
   override def exports(id: Int): Set[(ID, EXPORT)] on Broker =
     brokerExport.now.filter(_._1 != id).toSet
   def process(id: ID, export: EXPORT): Unit on Broker = brokerExport.transform(exports => exports + (id -> export))
@@ -124,9 +130,9 @@ import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
   def mySensors: Set[(CNAME, SensorData)] on Node = this.sense(id)
 
   def computeLocal(id: ID, state: State, exports: Set[(ID, EXPORT)], sensors: Set[(CNAME, SensorData)]): (
-    EXPORT,
+      EXPORT,
       State
-    ) on Node =
+  ) on Node =
     super.compute(id, state, exports, sensors)
   import scala.concurrent.ExecutionContext.Implicits.global
   def main(): Unit on Root = on[Node] {

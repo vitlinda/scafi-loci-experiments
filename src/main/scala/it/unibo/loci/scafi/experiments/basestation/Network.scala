@@ -28,8 +28,8 @@ object A extends App {
       TCP("localhost", 43055)
     }
       and connect[SimpleExampleP2P.BaseStation] {
-      TCP("localhost", 43052)
-    }
+        TCP("localhost", 43052)
+      }
   )
 }
 
@@ -41,11 +41,11 @@ object B extends App {
       connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43053)
       } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43055)
-    }
+        TCP("localhost", 43055)
+      }
       and connect[SimpleExampleP2P.BaseStation] {
-      TCP("localhost", 43052)
-    }
+        TCP("localhost", 43052)
+      }
   )
 }
 
@@ -57,13 +57,13 @@ object C extends App {
       listen[SimpleExampleP2P.AggregateNode] {
         TCP(43055)
       } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43054)
-    } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43056)
-    }
+        TCP("localhost", 43054)
+      } and connect[SimpleExampleP2P.AggregateNode] {
+        TCP("localhost", 43056)
+      }
       and connect[SimpleExampleP2P.BaseStation] {
-      TCP("localhost", 43052)
-    }
+        TCP("localhost", 43052)
+      }
   )
 }
 
@@ -75,11 +75,11 @@ object D extends App {
       connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43055)
       } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43057)
-    }
+        TCP("localhost", 43057)
+      }
       and connect[SimpleExampleP2P.BaseStation] {
-      TCP("localhost", 43052)
-    }
+        TCP("localhost", 43052)
+      }
   )
 }
 
@@ -92,7 +92,7 @@ object E extends App {
         TCP("localhost", 43056)
       }
       and connect[SimpleExampleP2P.BaseStation] {
-      TCP("localhost", 43052)
-    }
+        TCP("localhost", 43052)
+      }
   )
 }

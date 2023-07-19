@@ -3,7 +3,6 @@ package it.unibo.loci.scafi.experiments.dynamiconnections
 import loci.communicator.tcp.TCP
 import loci.language._
 
-
 @multitier object SimpleExampleP2P extends P2PSystem
 
 // A -> B
@@ -29,8 +28,8 @@ object B extends App {
       connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43053)
       } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43055)
-    }
+        TCP("localhost", 43055)
+      }
   )
 }
 
@@ -42,10 +41,10 @@ object C extends App {
       listen[SimpleExampleP2P.AggregateNode] {
         TCP(43055)
       } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43054)
-    } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43056)
-    }
+        TCP("localhost", 43054)
+      } and connect[SimpleExampleP2P.AggregateNode] {
+        TCP("localhost", 43056)
+      }
   )
 }
 
@@ -57,8 +56,8 @@ object D extends App {
       connect[SimpleExampleP2P.AggregateNode] {
         TCP("localhost", 43055)
       } and connect[SimpleExampleP2P.AggregateNode] {
-      TCP("localhost", 43057)
-    }
+        TCP("localhost", 43057)
+      }
   )
 }
 

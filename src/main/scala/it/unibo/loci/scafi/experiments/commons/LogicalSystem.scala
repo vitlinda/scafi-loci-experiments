@@ -1,7 +1,7 @@
 package it.unibo.loci.scafi.experiments.commons
 
-import LociIncarnation._
 import loci.language._
+import LociIncarnation._
 
 @multitier trait LogicalSystem { // defines only the component and the behaviour. The interaction is deployment-specific
   type SensorData = Boolean // should be any or a wrap data class

@@ -4,7 +4,7 @@ This repository contains experiments about the integration between [ScaFi](https
 
 The experiments are based on the following paper: [Towards Pulverised Architectures for Collective Adaptive Systems through Multi-Tier Programming](https://ieeexplore.ieee.org/document/9599177)
 
-## The experiments
+## How to run the experiments
 
 ### [1 - Dynamic connections](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/dynamiconnections)
 The goal of the experiment is to show a system that runs several examples of aggregate programs using ScaFi's constructs

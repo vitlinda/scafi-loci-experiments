@@ -3,13 +3,11 @@ package it.unibo.loci.scafi.experiments.dynamiconnections
 import io.circe.syntax.EncoderOps
 import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
 import it.unibo.loci.scafi.experiments.commons.LogicalSystem
+import java.util.UUID
+import loci.language._
 import loci.language.transmitter.rescala._
 import loci.serializer.circe._
-import loci.communicator.tcp._
-import loci.language._
 import rescala.default._
-
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Failure
@@ -23,7 +21,9 @@ import scala.util.Success
   private var _state: EXPORT on AggregateNode = factory.emptyExport()
   private val mid: ID on AggregateNode = UUID.randomUUID().hashCode()
   private val localExports: Local[Var[(ID, Map[ID, EXPORT])]] on AggregateNode = Var((mid, Map.empty[ID, EXPORT]))
-  private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(Map.empty[Remote[AggregateNode], ID])
+  private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(
+    Map.empty[Remote[AggregateNode], ID]
+  )
 
   // add the id and export of the nbrs to my localExports
   def process(id: ID, export: EXPORT): Unit on AggregateNode =

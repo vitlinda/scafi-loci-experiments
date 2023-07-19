@@ -1,13 +1,12 @@
 package it.unibo.loci.scafi.pulverization
 
+import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
+import java.util.UUID
 import loci.communicator.tcp._
 import loci.language._
-import rescala.default._
-import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
 import loci.language.transmitter.rescala._
 import loci.serializer.circe._
-
-import java.util.UUID
+import rescala.default._
 // Incarnation used to define aggregate programs
 
 // A template for a multitier aggregate system. It defines i) node type, ii) placement types and iii) data stream. Program isn't known a priori
