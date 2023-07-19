@@ -1,6 +1,5 @@
 import Dependencies._
 
-ThisBuild / name             := "Scafi Loci"
 ThisBuild / scalaVersion     := "2.13.2"
 ThisBuild / version          := "0.1.0"
 
