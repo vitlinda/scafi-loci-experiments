@@ -31,9 +31,9 @@ sbt "run it.unibo.loci.scafi.experiments.dynamiconnections.E"
 ``` 
 
 ### [2 - Base Station](https://github.com/vitlinda/scafi-loci-experiments/tree/main/src/main/scala/it/unibo/loci/scafi/experiments/basestation)
-This experiment introduces to the network of [1 - Dynamic connections](#1---dynamic-connections) a node that doesn't run an aggregate program - named "base station". This node act as a "monitor" and collects the values of every node connected to it.
-Since the connected nodes are running an aggregate program, the values collected by the base station are the output of every node's round.
-This example assumes that every node is connected to the base station.
+This experiment introduces to the network of [1 - Dynamic connections](#1---dynamic-connections) a node that doesn't run the aggregate program (e.g. a base station).
+This node act as a "monitor" and collects the values of every node connected to it.
+The values collected by the base station are: the output of each node's rounds and their export to obtain the values of neighbours that may not be directly connected to the base station.
 
 #### 2.1 - Run the Base Station
 ```bash
