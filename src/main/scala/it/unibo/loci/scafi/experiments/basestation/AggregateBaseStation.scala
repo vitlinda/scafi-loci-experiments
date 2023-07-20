@@ -26,8 +26,7 @@ import scala.util.Success
   private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(
     Map.empty[Remote[AggregateNode], ID]
   )
-  private val currentNodeState: Evt[EXPORT] on AggregateNode = Evt[EXPORT]()
-  private val currentNodeNbrState: Evt[Map[CNAME, Map[ID, Double]]] on AggregateNode = Evt[Map[CNAME, Map[ID, Double]]]()
+  private val currentNodeState: Evt[(EXPORT, Set[(ID, EXPORT)])] on AggregateNode = Evt[(EXPORT, Set[(ID, EXPORT)])]()
 
   def process(id: ID, export: EXPORT): Unit on AggregateNode =
     localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
@@ -81,10 +80,8 @@ import scala.util.Success
   }
 
   def gatherValues(): Unit on BaseStation = {
-    currentNodeNbrState.asLocalFromAllSeq observe { case (remote, map) =>
-      currentNodeState.asLocalFromAllSeq observe { case (remote, export) =>
-        super.monitorNode(remote, export, map)
-      }
+    currentNodeState.asLocalFromAllSeq observe { case (remote, (nodeOutput, nodeExports)) =>
+      super.monitorNode(remote, nodeOutput, nodeExports)
     }
   }
 
@@ -104,8 +101,7 @@ import scala.util.Success
       remote.call(process(mid, result._1))
       actuation(mid, result._1, imSource)
       update(mid, result._1)
-      currentNodeState.fire(result._1)
-      currentNodeNbrState.fire(nbrSensors)
+      currentNodeState.fire(result._1 -> myExports)
       Thread.sleep(1000)
     }
   } and on[BaseStation] {

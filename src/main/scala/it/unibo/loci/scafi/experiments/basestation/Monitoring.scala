@@ -9,7 +9,9 @@ import rescala.default._
   @peer type Monitor <: Node { type Tie <: Multiple[Monitored] }
   @peer type Monitored <: Node { type Tie <: Optional[Monitor] }
 
-  def monitorNode(remote: Remote[Monitored], export: EXPORT, nbrSensors: Map[CNAME, Map[ID, Double]]): Local[Unit] on Monitor = println(
-    s"Received value: ${export.root[Any]()} nbrValues: $nbrSensors from: $remote"
-  )
+  def monitorNode(remote: Remote[Monitored], output: EXPORT, exports: Set[(ID, EXPORT)]): Local[Unit] on Monitor = {
+    println(
+      s"Received value: ${output.root[Any]()} nodeExports: $exports from: $remote"
+    )
+  }
 }
