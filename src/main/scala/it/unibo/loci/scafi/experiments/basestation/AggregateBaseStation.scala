@@ -16,7 +16,7 @@ import scala.util.Success
 @multitier trait AggregateBaseStation extends LogicalSystem with Monitoring {
   @peer type BaseStation <: Monitor { type Tie <: Multiple[AggregateNode] with Multiple[Monitored] }
   @peer type AggregateNode <: Monitored {
-    type Tie <: Multiple[AggregateNode] with Single[BaseStation] with Single[Monitor]
+    type Tie <: Multiple[AggregateNode] with Optional[BaseStation] with Optional[Monitor]
   }
 
   private val namespace: Local[StandardSpatialSensorNames] on AggregateNode = new StandardSpatialSensorNames {}
@@ -27,6 +27,7 @@ import scala.util.Success
     Map.empty[Remote[AggregateNode], ID]
   )
   private val currentNodeState: Evt[EXPORT] on AggregateNode = Evt[EXPORT]()
+  private val currentNodeNbrState: Evt[Map[CNAME, Map[ID, Double]]] on AggregateNode = Evt[Map[CNAME, Map[ID, Double]]]()
 
   def process(id: ID, export: EXPORT): Unit on AggregateNode =
     localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
@@ -80,8 +81,10 @@ import scala.util.Success
   }
 
   def gatherValues(): Unit on BaseStation = {
-    currentNodeState.asLocalFromAllSeq observe { case (remote, export) =>
-      super.monitorNode(remote, export)
+    currentNodeNbrState.asLocalFromAllSeq observe { case (remote, map) =>
+      currentNodeState.asLocalFromAllSeq observe { case (remote, export) =>
+        super.monitorNode(remote, export, map)
+      }
     }
   }
 
@@ -102,6 +105,7 @@ import scala.util.Success
       actuation(mid, result._1, imSource)
       update(mid, result._1)
       currentNodeState.fire(result._1)
+      currentNodeNbrState.fire(nbrSensors)
       Thread.sleep(1000)
     }
   } and on[BaseStation] {

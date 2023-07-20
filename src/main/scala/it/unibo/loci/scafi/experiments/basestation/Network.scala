@@ -3,11 +3,11 @@ package it.unibo.loci.scafi.experiments.basestation
 import loci.communicator.tcp.TCP
 import loci.language._
 
-@multitier object SimpleExampleP2P extends AggregateBaseStation
+@multitier object ABSExample extends AggregateBaseStation
 
 object BaseStationNode extends App {
-  multitier start new Instance[SimpleExampleP2P.BaseStation](
-    listen[SimpleExampleP2P.AggregateNode] {
+  multitier start new Instance[ABSExample.BaseStation](
+    listen[ABSExample.AggregateNode] {
       TCP(43052)
     }
   )
@@ -19,79 +19,79 @@ object BaseStationNode extends App {
 // C -> D
 // D -> E
 object A extends App {
-  multitier start new Instance[SimpleExampleP2P.AggregateNode](
-    listen[SimpleExampleP2P.AggregateNode] {
+  multitier start new Instance[ABSExample.AggregateNode](
+    listen[ABSExample.AggregateNode] {
       TCP(43053)
-    } and connect[SimpleExampleP2P.AggregateNode] {
+    } and connect[ABSExample.AggregateNode] {
       TCP("localhost", 43054)
-    } and connect[SimpleExampleP2P.AggregateNode] {
+    } and connect[ABSExample.AggregateNode] {
       TCP("localhost", 43055)
     }
-      and connect[SimpleExampleP2P.BaseStation] {
+      and connect[ABSExample.BaseStation] {
         TCP("localhost", 43052)
       }
   )
 }
 
 object B extends App {
-  multitier start new Instance[SimpleExampleP2P.AggregateNode](
-    listen[SimpleExampleP2P.AggregateNode] {
+  multitier start new Instance[ABSExample.AggregateNode](
+    listen[ABSExample.AggregateNode] {
       TCP(43054)
     } and
-      connect[SimpleExampleP2P.AggregateNode] {
+      connect[ABSExample.AggregateNode] {
         TCP("localhost", 43053)
-      } and connect[SimpleExampleP2P.AggregateNode] {
+      } and connect[ABSExample.AggregateNode] {
         TCP("localhost", 43055)
       }
-      and connect[SimpleExampleP2P.BaseStation] {
+      and connect[ABSExample.BaseStation] {
         TCP("localhost", 43052)
       }
   )
 }
 
 object C extends App {
-  multitier start new Instance[SimpleExampleP2P.AggregateNode](
-    connect[SimpleExampleP2P.AggregateNode] {
+  multitier start new Instance[ABSExample.AggregateNode](
+    connect[ABSExample.AggregateNode] {
       TCP("localhost", 43053)
     } and
-      listen[SimpleExampleP2P.AggregateNode] {
+      listen[ABSExample.AggregateNode] {
         TCP(43055)
-      } and connect[SimpleExampleP2P.AggregateNode] {
+      } and connect[ABSExample.AggregateNode] {
         TCP("localhost", 43054)
-      } and connect[SimpleExampleP2P.AggregateNode] {
+      } and connect[ABSExample.AggregateNode] {
         TCP("localhost", 43056)
       }
-      and connect[SimpleExampleP2P.BaseStation] {
-        TCP("localhost", 43052)
-      }
+//      and connect[ABSExample.BaseStation] {
+//        TCP("localhost", 43052)
+//      }
   )
 }
 
 object D extends App {
-  multitier start new Instance[SimpleExampleP2P.AggregateNode](
-    listen[SimpleExampleP2P.AggregateNode] {
+  multitier start new Instance[ABSExample.AggregateNode](
+    listen[ABSExample.AggregateNode] {
       TCP(43056)
     } and
-      connect[SimpleExampleP2P.AggregateNode] {
+      connect[ABSExample.AggregateNode] {
         TCP("localhost", 43055)
-      } and connect[SimpleExampleP2P.AggregateNode] {
+      } and connect[ABSExample.AggregateNode] {
         TCP("localhost", 43057)
       }
-      and connect[SimpleExampleP2P.BaseStation] {
+      and connect[ABSExample.BaseStation] {
         TCP("localhost", 43052)
       }
   )
 }
 
 object E extends App {
-  multitier start new Instance[SimpleExampleP2P.AggregateNode](
-    listen[SimpleExampleP2P.AggregateNode] {
+  multitier start new Instance[ABSExample.AggregateNode](
+    listen[ABSExample.AggregateNode] {
       TCP(43057)
     } and
-      connect[SimpleExampleP2P.AggregateNode] {
+      connect[ABSExample.AggregateNode] {
         TCP("localhost", 43056)
       }
-      and connect[SimpleExampleP2P.BaseStation] {
+      and connect[ABSExample.BaseStation] {
         TCP("localhost", 43052)
       }
   )

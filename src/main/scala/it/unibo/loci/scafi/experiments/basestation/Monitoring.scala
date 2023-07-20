@@ -7,9 +7,9 @@ import rescala.default._
 @multitier trait Monitoring {
   @peer type Node
   @peer type Monitor <: Node { type Tie <: Multiple[Monitored] }
-  @peer type Monitored <: Node { type Tie <: Single[Monitor] }
+  @peer type Monitored <: Node { type Tie <: Optional[Monitor] }
 
-  def monitorNode(remote: Remote[Monitored], export: EXPORT): Local[Unit] on Monitor = println(
-    s"Received value: ${export.root[Any]()} from: $remote"
+  def monitorNode(remote: Remote[Monitored], export: EXPORT, nbrSensors: Map[CNAME, Map[ID, Double]]): Local[Unit] on Monitor = println(
+    s"Received value: ${export.root[Any]()} nbrValues: $nbrSensors from: $remote"
   )
 }
