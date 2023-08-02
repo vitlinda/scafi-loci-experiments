@@ -4,6 +4,8 @@ import io.circe.syntax.EncoderOps
 import it.unibo.loci.scafi.experiments.basestation.ABSExample
 import it.unibo.loci.scafi.experiments.commons.LociIncarnation._
 import it.unibo.loci.scafi.experiments.commons.LogicalSystem
+
+import java.util.concurrent.ExecutorService
 import java.util.UUID
 import loci.communicator.tcp.TCP
 import loci.language._
@@ -11,6 +13,7 @@ import loci.language.on
 import loci.language.transmitter.rescala._
 import loci.serializer.circe._
 import rescala.default._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Failure
@@ -18,6 +21,8 @@ import scala.util.Success
 
 @multitier trait AggregateUtils {
   type SensorData = Boolean // should be Any or a wrap data class
+//  case class SensorData[A](value: A)
+
   type State = EXPORT
 
   @peer type AggregateNode
@@ -62,6 +67,8 @@ import scala.util.Success
   private val remoteNodesIds: Local[Var[Map[Remote[AggregateNode], ID]]] on AggregateNode = Var(
     Map.empty[Remote[AggregateNode], ID]
   )
+
+  def observeConnections(): Unit on AggregateNode = remote[AggregateNode].connected observe updateConnections
 
   def process(id: ID, export: EXPORT): Unit on AggregateNode =
     localExports.transform { case (myId, exports) => (myId, exports + (id -> export)) }
@@ -118,8 +125,6 @@ import scala.util.Success
   }
 
   def performRound(imSource: Boolean): (EXPORT, State) on AggregateNode = {
-    remote[AggregateNode].connected observe updateConnections
-
     val state = myState
     val myExports = exports(mid)
     val nbrRange = myExports.map { case (id, _) => id -> 1.0 }.toMap + (mid -> 0.0)
@@ -148,13 +153,14 @@ import scala.util.Success
   }
 
   def main(): Unit on Node = on[AGNode] {
+    as.observeConnections()
+    // define program sensors
     val source = Math.random() < 0.5
     while (true) {
       val res = as.performRound(source)
       currentNodeState.fire(res._1)
       Thread.sleep(1000)
     }
-
   } and on[BaseStation] {
     gatherValues()
   }
